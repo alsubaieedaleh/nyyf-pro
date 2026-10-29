@@ -85,9 +85,9 @@ coordinates would cut it further.
 
 | Option | Gives | Cost and access | Next step |
 |---|---|---|---|
-| [Aqarsas API](https://aqarsas.sa/api) | MOJ + Real Estate Registry deals filtered and returned by plan and parcel; coordinates with a spatial add-on | Paid "API Integration" plan, keys from their support | Ask for a quote and a sample for Riyadh |
-| SREM public API (prod-srem-api-srem.moj.gov.sa) | Daily market index, per-area aggregates (`Dashboard/GetAreaInfo`), live deal stream; per-deal feed is Nafath-gated | Free, undocumented, behind a bot filter | Allow the host in this environment and map what `GetAreaInfo` returns |
-| Balady / Amanah GIS (e.g. Eastern Amanah `webgis.eamana.gov.sa/.../Balady/MapServer`) | Plan and parcel polygons with plan numbers | Public map servers, terms unclear | Allow the hosts, list layers, ask the Amanah about reuse terms |
+| [Aqarsas API](https://aqarsas.sa/api) | MOJ + Real Estate Registry deals filtered and returned by plan and parcel; coordinates with a spatial add-on | Paid "API Integration" plan, keys from their support | Request in `nyyf-pro/outreach/`; `fetch_aqarsas.py` is ready for the key |
+| MOJ (SREM / open data team) | Per-deal feed with plan and parcel (on SREM it is Nafath-gated); the 2023-Q1 open file shows MOJ can publish these fields | Official request; SREM's website blocks automated clients, so we do not scrape it | Send the MOJ data request in `nyyf-pro/outreach/` |
+| Balady / Amanah GIS (e.g. Eastern Amanah `webgis.eamana.gov.sa/.../Balady/MapServer`) | Plan and parcel polygons with plan numbers | Public ArcGIS REST services, terms unclear | Allow the hosts, run `probe_gov_sources.py` to list plan layers, ask the Amanah about reuse terms |
 | Wathq Real Estate Deeds API | Deed lookups by number, parcel identity | Paid, per call | Use for deed checks, not bulk |
 | GEOSA / National Address API | Parcel geometry, geocoding | Registration; National Address has a free starter tier | Register |
 

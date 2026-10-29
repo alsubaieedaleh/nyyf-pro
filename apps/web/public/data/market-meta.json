@@ -1,0 +1,212 @@
+{
+  "riyadh": {
+    "city_ar": "الرياض",
+    "city_en": "Riyadh",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 326472,
+    "matched_deals": 304558,
+    "districts": 189,
+    "bbox": [
+      46.3164,
+      24.3223,
+      47.3247,
+      25.1688
+    ],
+    "districts_with_price": 136,
+    "median_ppm2_12m": 2507,
+    "deals_12m": 14952,
+    "value_12m": 31750966156,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 966,
+      "with_land_price": 424,
+      "with_estimate": 409,
+      "placed": 112
+    }
+  },
+  "jeddah": {
+    "city_ar": "جدة",
+    "city_en": "Jeddah",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 162214,
+    "matched_deals": 131334,
+    "districts": 170,
+    "bbox": [
+      38.9467,
+      21.0517,
+      39.528,
+      21.9968
+    ],
+    "districts_with_price": 102,
+    "median_ppm2_12m": 3064,
+    "deals_12m": 21488,
+    "value_12m": 33258882987,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 426,
+      "with_land_price": 160,
+      "with_estimate": 153,
+      "placed": 0
+    }
+  },
+  "makkah": {
+    "city_ar": "مكة المكرمة",
+    "city_en": "Makkah",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 52905,
+    "matched_deals": 20811,
+    "districts": 68,
+    "bbox": [
+      39.6021,
+      21.1664,
+      40.0572,
+      21.6089
+    ],
+    "districts_with_price": 43,
+    "median_ppm2_12m": 1953,
+    "deals_12m": 7233,
+    "value_12m": 10219557403,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 90,
+      "with_land_price": 26,
+      "with_estimate": 24,
+      "placed": 0
+    }
+  },
+  "madinah": {
+    "city_ar": "المدينة المنورة",
+    "city_en": "Madinah",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 51854,
+    "matched_deals": 34967,
+    "districts": 118,
+    "bbox": [
+      38.7836,
+      23.7411,
+      40.7317,
+      25.2119
+    ],
+    "districts_with_price": 72,
+    "median_ppm2_12m": 1300,
+    "deals_12m": 7471,
+    "value_12m": 6343506018,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 153,
+      "with_land_price": 43,
+      "with_estimate": 41,
+      "placed": 0
+    }
+  },
+  "dammam": {
+    "city_ar": "الدمام",
+    "city_en": "Dammam",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 37842,
+    "matched_deals": 31593,
+    "districts": 87,
+    "bbox": [
+      49.7476,
+      25.905,
+      50.2342,
+      26.5273
+    ],
+    "districts_with_price": 57,
+    "median_ppm2_12m": 2150,
+    "deals_12m": 3892,
+    "value_12m": 6411765548,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 233,
+      "with_land_price": 58,
+      "with_estimate": 44,
+      "placed": 0
+    }
+  },
+  "khobar": {
+    "city_ar": "الخبر",
+    "city_en": "Al Khobar",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 32262,
+    "matched_deals": 23596,
+    "districts": 44,
+    "bbox": [
+      50.0974,
+      26.0816,
+      50.2408,
+      26.3857
+    ],
+    "districts_with_price": 34,
+    "median_ppm2_12m": 3141,
+    "deals_12m": 3196,
+    "value_12m": 5221057139,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 115,
+      "with_land_price": 27,
+      "with_estimate": 20,
+      "placed": 0
+    }
+  }
+}

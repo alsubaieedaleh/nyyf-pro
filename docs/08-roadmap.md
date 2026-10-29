@@ -12,6 +12,8 @@ Assumes a small team (1 to 2 full-stack developers, 1 part-time data/ML, 1 part-
 - Ingest Riyadh deals, districts, and the old land offers; clean and normalise names.
 - Design system and map style (light and dark), price colour scale, key screens in Figma.
 
+**Progress (2026-10-29):** monorepo and the Next.js + MapLibre map prototype are up. The map runs on MOJ sold deals and REGA rents for Riyadh, Jeddah, Makkah, Madinah, Dammam and Al Khobar, plus the old Riyadh offers (see 10). Still open: secret rotation in the old repo, broker interviews, PostGIS and tiles, parcel geometry, CI.
+
 **Exit:** Riyadh district tiles and deal tiles served from a CDN; designs signed off; data access confirmed or a fallback chosen.
 
 ## Phase 1 · MVP: the map and valuation (weeks 4 to 10)

@@ -4,9 +4,10 @@
 
 | Source | What it gives | How | Status |
 |---|---|---|---|
-| Ministry of Justice (MOJ) real estate deals / REGA Real Estate Indicators (rei.rega.gov.sa) | Sold deals: date, city, district, plan, parcel, area, price | Open data download or scheduled scrape, nightly ingest | Old `RealEstates` table had this shape; confirm current access and terms |
-| District boundaries | Polygons with names AR/EN | Old `riyadh_districts.geojson` (129 districts), then official sources per city | Have Riyadh |
-| Plans (مخططات) and parcels (قطع) | Plan outlines, parcel geometry, numbers, dimensions | Balady / municipal plan data, Riyadh Royal Commission, or a licensed provider | **Biggest data gap.** Needs investigation (see 09) |
+| Ministry of Justice (MOJ) real estate deals / REGA Real Estate Indicators (rei.rega.gov.sa) | Sold deals: date, city, district, plan, parcel, area, price | Open data download, scheduled ingest | **In the prototype** for 6 cities, deals through 2026-03-31 (see 10) |
+| REGA rental indicators (Ejar) | Rent by district and property type, quarterly | Open data download | **In the prototype**, 2025-Q2 to 2026-Q1 (see 10) |
+| District boundaries | Polygons with names AR/EN | National Address districts (homaily mirror, GPL-2.0) now; Balady / MOMAH later | Have 6 cities; license to clear (Q7) |
+| Plans (مخططات) and parcels (قطع) | Plan outlines, parcel geometry, numbers, dimensions | Balady / Amanah GIS, or a licensed provider (Aqarsas) | **Biggest data gap.** Prototype has plan prices from MOJ 2023-Q1 carried to today, no boundaries (see 10) |
 | Listings (asking prices) | Offers with price, area, text, location | Brokers' own inventory (primary); old scraped land offers (~30k, seed only) | Have seed |
 | National Address | Geocoding of addresses and short codes | API (paid) | Later |
 | POIs and demographics | Schools, mosques, metro, population | OpenStreetMap, GASTAT | P2 |

@@ -13,6 +13,7 @@ This folder is the single reference for what Nyyf Pro is, who it serves, how it 
 | 07 | [07-architecture.md](07-architecture.md) | Tech stack, services, map tile pipeline, security |
 | 08 | [08-roadmap.md](08-roadmap.md) | Phased plan with milestones and exit criteria |
 | 09 | [09-decisions-and-open-questions.md](09-decisions-and-open-questions.md) | Decisions made, decisions pending, risks |
+| 10 | [10-data-sources.md](10-data-sources.md) | Data the prototype runs on: sources, licenses, freshness, coverage, gaps |
 
 ## One-paragraph summary
 
@@ -21,5 +22,5 @@ Nyyf started as a Riyadh land valuation tool (Angular web, Flutter mobile, Expre
 ## Status
 
 - Created: 2026-10-29
-- Stage: Planning (no implementation yet)
+- Stage: Phase 0. Map prototype with real MOJ deals and REGA rents for six cities ([nyyf-pro PR #1](https://github.com/alsubaieedaleh/nyyf-pro/pull/1))
 - Owner: da (alsubaieedaleh)

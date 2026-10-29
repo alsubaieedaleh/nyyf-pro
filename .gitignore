@@ -14,3 +14,5 @@ __pycache__/
 data/raw/
 .DS_Store
 apps/web/public/maplibre/
+next-env.d.ts
+*.tsbuildinfo

@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+.env
+.env.*
+!.env.example
+*.tfstate
+*.tfstate.*
+.terraform/
+__pycache__/
+.venv/
+data/raw/
+.DS_Store
+apps/web/public/maplibre/

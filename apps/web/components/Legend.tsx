@@ -1,19 +1,22 @@
 import { formatCompact, formatPercent } from "@/lib/format";
 import type { Locale, Strings } from "@/lib/i18n";
-import { GAP_BREAKS, GAP_COLORS, PRICE_BREAKS, PRICE_COLORS, type Metric } from "@/lib/scale";
+import { METRIC_SCALES, type Metric } from "@/lib/scale";
+
+export function metricLabel(t: Strings, metric: Metric) {
+  return { ppm2: t.metricPpm2, yoy: t.metricYoy, volume: t.metricVolume, rent: t.metricRent, asking: t.metricAsking, gap: t.metricGap }[metric];
+}
 
 export function Legend({ t, locale, metric }: { t: Strings; locale: Locale; metric: Metric }) {
-  const gap = metric === "gap";
-  const colors = gap ? GAP_COLORS : PRICE_COLORS;
-  const breaks = gap ? GAP_BREAKS : PRICE_BREAKS;
-  const label = (v: number) => (gap ? formatPercent(v, locale) : formatCompact(v, locale));
-  const title = metric === "ppm2" ? t.metricPpm2 : metric === "asking" ? t.metricAsking : t.metricGap;
+  const { breaks, colors, percent } = METRIC_SCALES[metric];
+  const label = (v: number) => (percent ? formatPercent(v, locale) : formatCompact(v, locale));
+  const title = metricLabel(t, metric);
+  const unit = metric === "ppm2" || metric === "asking" ? t.perM2 : metric === "rent" ? t.perM2Year : null;
 
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between text-xs text-muted">
         <span className="font-medium text-ink">{title}</span>
-        {!gap && <span>{t.perM2}</span>}
+        {unit && <span>{unit}</span>}
       </div>
       <div className="flex h-2 overflow-hidden rounded-full">
         {colors.map((c) => (

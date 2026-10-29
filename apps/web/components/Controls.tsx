@@ -5,6 +5,7 @@ import type { AreaFilter, DistrictProps } from "@/lib/data";
 import { formatNumber } from "@/lib/format";
 import type { Locale, Strings } from "@/lib/i18n";
 import type { Metric } from "@/lib/scale";
+import { metricLabel } from "./Legend";
 
 const normalise = (s: string) =>
   s
@@ -70,7 +71,7 @@ export function SearchBox({
               >
                 <span>{locale === "ar" ? d.name_ar : d.name_en}</span>
                 <span className="tabular text-sm text-muted">
-                  {formatNumber(d.ppm2, locale)} {t.perM2}
+                  {d.ppm2 ? `${formatNumber(d.ppm2, locale)} ${t.perM2}` : "–"}
                 </span>
               </button>
             </li>
@@ -119,16 +120,16 @@ export function Controls({
   };
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 rounded-full bg-surface/85 p-1 shadow-sm ring-1 ring-black/5 backdrop-blur">
-        {(["ppm2", "asking", "gap"] as Metric[]).map((m) => (
+      <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-full bg-surface/85 p-1 shadow-sm ring-1 ring-black/5 backdrop-blur">
+        {(["ppm2", "yoy", "volume", "rent", "asking", "gap"] as Metric[]).map((m) => (
           <button
             key={m}
             onClick={() => onMetric(m)}
-            className={`h-8 flex-1 rounded-full px-2 text-[12.5px] font-medium transition ${
+            className={`h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12.5px] font-medium transition ${
               metric === m ? "bg-brand text-white shadow-sm" : "text-muted hover:text-ink"
             }`}
           >
-            {m === "ppm2" ? t.metricPpm2 : m === "asking" ? t.metricAsking : t.metricGap}
+            {metricLabel(t, m)}
           </button>
         ))}
       </div>

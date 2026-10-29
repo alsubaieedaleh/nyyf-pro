@@ -3,7 +3,7 @@
 import type { Point } from "geojson";
 import { Map as MlMap, setWorkerUrl, type GeoJSONSource, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AREA_FILTERS, bbox, loadSeed, median, type AreaFilter, type District, type DistrictProps, type OfferProps } from "@/lib/data";
+import { AREA_FILTERS, bbox, loadSeed, type AreaFilter, type District, type DistrictProps, type OfferProps } from "@/lib/data";
 import { formatCompact } from "@/lib/format";
 import { strings, type Locale } from "@/lib/i18n";
 import { DISTRICT_LAYERS, OFFER_LAYERS, addLayers, setVisible } from "@/lib/layers";
@@ -248,19 +248,10 @@ export default function MapApp() {
     return filteredOffers.features.filter((f) => f.properties.district_id === selection.id);
   }, [selection, filteredOffers]);
 
-  const cityStats = useMemo(() => {
-    if (!seed || !filteredOffers) return null;
-    return {
-      districts: seed.districts.features.length,
-      offers: filteredOffers.features.length,
-      medianPpm2: median(seed.districts.features.map((f) => f.properties.ppm2)) ?? 0,
-      medianAsking: median(filteredOffers.features.map((f) => f.properties.ppm2)) ?? 0,
-    };
-  }, [seed, filteredOffers]);
 
   const districtList = useMemo(() => (seed ? seed.districts.features.map((f) => f.properties as DistrictProps) : []), [seed]);
 
-  let content: React.ReactNode = cityStats && <CitySummary t={t} locale={locale} stats={cityStats} />;
+  let content: React.ReactNode = seed && <CitySummary t={t} locale={locale} meta={seed.meta} />;
   if (selection?.kind === "district") {
     const d = districtsById.get(selection.id);
     if (d)

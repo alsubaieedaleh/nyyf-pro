@@ -1,0 +1,24 @@
+{
+  "riyadh": {
+    "city_ar": "الرياض",
+    "city_en": "Riyadh",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-03-31",
+    "window_start": "2025-04-01",
+    "deals": 326472,
+    "matched_deals": 304279,
+    "districts": 189,
+    "districts_with_price": 135,
+    "median_ppm2_12m": 2507,
+    "deals_12m": 14952,
+    "value_12m": 31750966156,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ]
+  }
+}

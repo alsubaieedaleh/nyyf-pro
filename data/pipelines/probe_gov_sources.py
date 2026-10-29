@@ -19,12 +19,16 @@ import re
 import time
 import urllib.error
 import urllib.request
+import urllib.robotparser
 from pathlib import Path
 
 ARCGIS_ROOTS = [
     "https://webgis.eamana.gov.sa/arcgisnew/rest/services",
     "https://umaps.balady.gov.sa/server/rest/services",
     "https://umaps.balady.gov.sa/arcgis/rest/services",
+    # umaps.balady.gov.sa now redirects to the MOMAH host (checked 2026-10-29)
+    "https://umaps.momah.gov.sa/server/rest/services",
+    "https://umaps.momah.gov.sa/arcgis/rest/services",
 ]
 HEADERS = {"User-Agent": "nyyf-pro-data-probe/0.1 (+https://github.com/alsubaieedaleh/nyyf-pro)", "Accept": "application/json"}
 PLAN_LAYER = re.compile(r"plan|parcel|land|subdiv|مخطط|قطع|أراضي|اراضي|قطعة", re.I)
@@ -43,8 +47,21 @@ def get(url):
         return {"status": None, "error": str(e)}
 
 
+def robots_allow(root):
+    host = "/".join(root.split("/")[:3])
+    rp = urllib.robotparser.RobotFileParser(f"{host}/robots.txt")
+    try:
+        rp.read()
+    except Exception:
+        return True  # no readable robots.txt: the request below reports any refusal
+    return rp.can_fetch(HEADERS["User-Agent"], f"{root}?f=json")
+
+
 def probe_arcgis(root):
     report = {"root": root, "services": [], "plan_layers": []}
+    if not robots_allow(root):
+        report["error"] = "robots.txt disallows automated access; ask the owner instead"
+        return report
     top = get(f"{root}?f=json")
     report["status"] = top.get("status")
     if "json" not in top:

@@ -1,7 +1,7 @@
 # 10 · Data sources in the prototype
 
 What the Phase 0 map runs on today, how fresh it is, how well it matches, and what is missing.
-Updated 2026-10-29. Rebuild with `data/pipelines/build_all.sh` (see the repo README).
+Updated 2026-10-29 (government layer probe added). Rebuild with `data/pipelines/build_all.sh` (see the repo README).
 The clean base tables live in the project folder `nyyf-pro/base-data/` (built by `build_base.py`).
 
 ## Sources
@@ -87,9 +87,38 @@ coordinates would cut it further.
 |---|---|---|---|
 | [Aqarsas API](https://aqarsas.sa/api) | MOJ + Real Estate Registry deals filtered and returned by plan and parcel; coordinates with a spatial add-on | Paid "API Integration" plan, keys from their support | Request in `nyyf-pro/outreach/`; `fetch_aqarsas.py` is ready for the key |
 | MOJ (SREM / open data team) | Per-deal feed with plan and parcel (on SREM it is Nafath-gated); the 2023-Q1 open file shows MOJ can publish these fields | Official request; SREM's website blocks automated clients, so we do not scrape it | Send the MOJ data request in `nyyf-pro/outreach/` |
-| Balady / Amanah GIS (e.g. Eastern Amanah `webgis.eamana.gov.sa/.../Balady/MapServer`) | Plan and parcel polygons with plan numbers | Public ArcGIS REST services, terms unclear | Allow the hosts, run `probe_gov_sources.py` to list plan layers, ask the Amanah about reuse terms |
+| Balady / Amanah GIS (e.g. Eastern Amanah `webgis.eamana.gov.sa/.../Balady/MapServer`) | Plan and parcel polygons with plan numbers | ArcGIS REST services; Eastern Amanah's robots.txt disallows automated access, no published reuse terms | Ask the Amanah / MOMAH for a data-sharing agreement (see probe results below) |
 | Wathq Real Estate Deeds API | Deed lookups by number, parcel identity | Paid, per call | Use for deed checks, not bulk |
 | GEOSA / National Address API | Parcel geometry, geocoding | Registration; National Address has a free starter tier | Register |
+
+### Government map layer probe (2026-10-29)
+
+Run of `probe_gov_sources.py` plus manual checks of the three hosts. **No layer list or field list
+could be read**, so nothing below is a confirmed مخطط layer yet.
+
+| Host | Result | What it means |
+|---|---|---|
+| `webgis.eamana.gov.sa` (Eastern Amanah ArcGIS) | Blocked by this sandbox's network policy (proxy 403). A fetch from outside the sandbox was refused because the site's **robots.txt disallows automated access** to `/arcgisnew/rest/services`. | Even with the host allowed, crawling the REST directory goes against the owner's stated wishes. Treat it as not open for reuse: get written permission (or a data-sharing agreement) before any probe or download. |
+| `umaps.balady.gov.sa` | Blocked here (proxy 403). From outside it now **redirects to `umaps.momah.gov.sa`**, an "app-viewer" single-page app with no layers, endpoints or terms in its HTML. | The Balady map moved to the MOMAH host; the probe script now tries `umaps.momah.gov.sa/{server,arcgis}/rest/services` too. Layers and terms are unknown until that host can be reached. No terms of use are published on the viewer page. |
+| `moj.gov.sa` | Blocked here (proxy 403). From outside: the open data reports give real estate deals by **region, city and district (حي)** only, no plan or parcel. | MOJ open data policy: free reuse, **must cite "Ministry of Justice"**, data must not be altered, no political or discriminatory use; the license itself is the one on the National Open Data Portal (contact `DATA-SEC@moj.gov.sa`). Plan/parcel fields need an official data request (the [request form](https://www.moj.gov.sa/English/OpenData/Pages/Request.aspx)). |
+| `srem.moj.gov.sa` | Blocked here; not scraped (it blocks automated clients). | Official request only. |
+
+Other checks: the civillizard mirror's README confirms it carries no plan or parcel IDs beyond the
+2023-Q1 MOJ file, and third-party indicator sites (e.g. Raghdan) work at district level too.
+
+**Why the probe could not run:** the cloud environment's network policy denies these hosts (it also
+denied google.com, so it is a narrow allow-list, not a per-site block). The user granted access, but
+the setting is per environment: add `webgis.eamana.gov.sa`, `umaps.balady.gov.sa`,
+`umaps.momah.gov.sa`, `moj.gov.sa` and `www.moj.gov.sa` under Allowed domains (or pick Full access)
+and start a new session, then rerun:
+
+    python3 -I data/pipelines/probe_gov_sources.py --out data/raw/probe.json
+
+The script now checks each host's robots.txt first and skips a host that disallows it.
+
+**Conclusion for مخطط-level prices:** none of the three government sources gives plan-level prices
+openly. The realistic paths stay Aqarsas (paid, ready) and an MOJ data request; Amanah/MOMAH plan
+polygons are worth requesting formally for drawing plan boundaries, not for prices.
 
 ## Gaps and what fixes them
 

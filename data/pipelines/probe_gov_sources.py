@@ -68,8 +68,12 @@ def probe_arcgis(root):
         report["error"] = top.get("error")
         return report
     services = list(top["json"].get("services", []))
+    report["folders"] = {}
     for folder in top["json"].get("folders", []):
-        services += get(f"{root}/{folder}?f=json").get("json", {}).get("services", [])
+        listing = get(f"{root}/{folder}?f=json").get("json", {})
+        # 499 "Token Required" means the folder is for signed-in users only: stop there
+        report["folders"][folder] = listing.get("error", {}).get("message") or "open"
+        services += listing.get("services", [])
     report["services"] = [f"{s['name']} ({s['type']})" for s in services]
     for s in services[:MAX_SERVICES]:
         if s["type"] not in ("MapServer", "FeatureServer"):
@@ -100,6 +104,8 @@ def main():
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     for a in report:
         print(f"{a['root']}: {a.get('status')} services {len(a['services'])}, plan layers {len(a['plan_layers'])} {a.get('error', '')}")
+        for folder, state in a.get("folders", {}).items():
+            print(f"  folder {folder}: {state}")
         for layer in a["plan_layers"]:
             print(f"  {layer['name']}: fields {layer['fields'][:12]}, copyright {layer['copyright']!r}")
 

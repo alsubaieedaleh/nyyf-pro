@@ -74,6 +74,41 @@ def normalise(name: str) -> str:
     return ALIASES.get(s, s)
 
 
+def simplify_name(name: str) -> str:
+    """Drop qualifiers MOJ adds to municipal names: "الشامية الجديد", "طيبة بمنطقة البيداء"."""
+    s = re.split(r"\s+(?:ب|في |فى )?منطقه\s|\s+مخطط\s|\s+(?:شرق|غرب|شمال|جنوب) طريق\s", name)[0]
+    s = re.sub(r"\s+(الجديد|الجديده|هـ|ه)$", "", s)
+    return s.strip()
+
+
+class DistrictMatcher:
+    """Match a district name to a boundary: exact, then simplified, then a unique word-boundary prefix."""
+
+    def __init__(self, features, name=lambda f: f["properties"]["name_ar"]):
+        self.exact = {normalise(name(f)): f for f in features}
+        self.cache = {}
+
+    def __call__(self, raw: str):
+        if raw in self.cache:
+            return self.cache[raw]
+        key = normalise(raw)
+        f = self.exact.get(key)
+        if f is None:
+            short = simplify_name(key)
+            f = self.exact.get(short)
+            if f is None and len(short) >= 4:
+                hits = [v for k, v in self.exact.items() if k == short or k.startswith(short + " ") or short.startswith(k + " ")]
+                f = hits[0] if len(hits) == 1 else None
+        self.cache[raw] = f
+        return f
+
+
+def same_city(a: str, b: str) -> bool:
+    """MOJ and REGA spell some cities differently from the National Address (جده vs جدة)."""
+    fold = lambda s: s.strip().replace("ة", "ه").replace("أ", "ا")
+    return fold(a) == fold(b)
+
+
 def number(value: str):
     try:
         return float(str(value).replace(",", "").strip())
@@ -99,7 +134,7 @@ def read_deals(moj_dir: Path, city: str):
         with opener(path, "rt", encoding="utf-8-sig") as fh:
             for row in csv.DictReader(fh):
                 row = {k.strip(): v for k, v in row.items() if k}
-                if row.get("المدينة", "").strip() != city:
+                if not same_city(row.get("المدينة", ""), city):
                     continue
                 district = row.get("المدينة / الحي") or row.get("الحي") or ""
                 when = parse_date(row.get("تاريخ الصفقة ميلادي") or row.get("التاريخ") or "")
@@ -122,6 +157,11 @@ def read_deals(moj_dir: Path, city: str):
                 }
 
 
+def unary_bbox(features):
+    xs0, ys0, xs1, ys1 = zip(*(shape(f["geometry"]).bounds for f in features))
+    return min(xs0), min(ys0), max(xs1), max(ys1)
+
+
 def quarter(d: date) -> str:
     return f"{d.year}-Q{(d.month - 1) // 3 + 1}"
 
@@ -130,7 +170,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--moj", required=True, type=Path)
     ap.add_argument("--districts", required=True, type=Path)
-    ap.add_argument("--city", default="الرياض")
+    ap.add_argument("--city", default="الرياض", help="city name as written in the National Address data")
     ap.add_argument("--city-en", default="Riyadh")
     ap.add_argument("--slug", default="riyadh")
     args = ap.parse_args()
@@ -138,9 +178,9 @@ def main():
     with open(args.districts, encoding="utf-8") as fh:
         all_districts = json.load(fh)["features"]
     with open(args.districts.parent.parent / "json" / "cities_lite.json", encoding="utf-8") as fh:
-        city_id = next(c["city_id"] for c in json.load(fh) if c["name_ar"] == args.city)
+        city_id = next(c["city_id"] for c in json.load(fh) if same_city(c["name_ar"], args.city))
     districts = [f for f in all_districts if f["properties"]["city_id"] == city_id]
-    by_name = {normalise(f["properties"]["name_ar"]): f for f in districts}
+    match = DistrictMatcher(districts)
 
     deals = list({d["ref"] or id(d): d for d in read_deals(args.moj, args.city)}.values())
     latest = max(d["date"] for d in deals)
@@ -150,7 +190,7 @@ def main():
     matched = defaultdict(list)
     unmatched = defaultdict(int)
     for d in deals:
-        f = by_name.get(normalise(d["district"]))
+        f = match(d["district"])
         if f is None:
             unmatched[d["district"]] += 1
             continue
@@ -256,6 +296,7 @@ def main():
         "deals": total,
         "matched_deals": matched_n,
         "districts": len(districts),
+        "bbox": [round(v, 4) for v in unary_bbox(districts)],
         "districts_with_price": sum(1 for f in out_features if f["properties"]["ppm2"]),
         "median_ppm2_12m": round(statistics.median(city_res)) if city_res else None,
         "deals_12m": len(city_12m),

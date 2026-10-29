@@ -3,7 +3,7 @@
 import type { Point } from "geojson";
 import { Map as MlMap, setWorkerUrl, type GeoJSONSource, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AREA_FILTERS, bbox, loadSeed, type AreaFilter, type District, type DistrictProps, type OfferProps } from "@/lib/data";
+import { AREA_FILTERS, bbox, loadCity, loadMeta, type AreaFilter, type District, type DistrictProps, type MarketMeta, type OfferProps } from "@/lib/data";
 import { formatCompact } from "@/lib/format";
 import { strings, type Locale } from "@/lib/i18n";
 import { DISTRICT_LAYERS, OFFER_LAYERS, addLayers, setVisible } from "@/lib/layers";
@@ -31,7 +31,19 @@ export type Selection =
   | { kind: "offer"; offer: OfferProps; lngLat: [number, number] }
   | null;
 
-type Seed = Awaited<ReturnType<typeof loadSeed>>;
+type Seed = Awaited<ReturnType<typeof loadCity>>;
+
+/** Bounds of the districts that have recent deals, so outlying empty districts don't zoom the city out. */
+function cityView(data: Seed): [number, number, number, number] {
+  const active = data.districts.features.filter((f) => f.properties.deals_12m >= 5);
+  const boxes = (active.length ? active : data.districts.features).map((f) => bbox(f.geometry));
+  return [
+    Math.min(...boxes.map((b) => b[0])),
+    Math.min(...boxes.map((b) => b[1])),
+    Math.max(...boxes.map((b) => b[2])),
+    Math.max(...boxes.map((b) => b[3])),
+  ];
+}
 
 async function resolveStyle(): Promise<StyleSpecification | string> {
   try {
@@ -59,6 +71,8 @@ export default function MapApp() {
   const mapRef = useRef<MlMap | null>(null);
   const [ready, setReady] = useState(false);
   const [seed, setSeed] = useState<Seed | null>(null);
+  const [meta, setMeta] = useState<Record<string, MarketMeta> | null>(null);
+  const [city, setCity] = useState("riyadh");
   const [locale, setLocale] = useState<Locale>("ar");
   const [metric, setMetric] = useState<Metric>("ppm2");
   const [layers, setLayers] = useState({ districts: true, offers: true });
@@ -90,7 +104,7 @@ export default function MapApp() {
     let cancelled = false;
     let map: MlMap | null = null;
     (async () => {
-      const [style, data] = await Promise.all([resolveStyle(), loadSeed()]);
+      const [style, allMeta, data] = await Promise.all([resolveStyle(), loadMeta(), loadCity("riyadh")]);
       if (cancelled || !container.current) return;
       // MapLibre 6 shapes Arabic text natively, so no RTL plugin is needed.
       const instance = new MlMap({
@@ -110,6 +124,7 @@ export default function MapApp() {
       instance.on("load", () => {
         const hasGlyphs = typeof style !== "string" && Boolean(style.glyphs);
         addLayers(instance, data, { metric: "ppm2", nameField: "name_ar", hasGlyphs });
+        setMeta(allMeta);
         setSeed(data);
         setReady(true);
       });
@@ -120,6 +135,24 @@ export default function MapApp() {
       mapRef.current = null;
     };
   }, []);
+
+  // Switch city: swap the data in place and fly to the new city.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || seed?.slug === city) return;
+    let live = true;
+    loadCity(city).then((data) => {
+      if (!live) return;
+      (map.getSource("districts") as GeoJSONSource).setData(data.districts);
+      setSelection(null);
+      setSeed(data);
+      if (!data.hasOffers) setMetric((m) => (m === "asking" || m === "gap" ? "ppm2" : m));
+      map.fitBounds(cityView(data), { padding: paddingRef.current, duration: 1200 });
+    });
+    return () => {
+      live = false;
+    };
+  }, [city, ready, seed?.slug]);
 
   // Keep page direction and language in sync with the locale.
   useEffect(() => {
@@ -156,7 +189,9 @@ export default function MapApp() {
     [isDesktop, locale, sheetHeight],
   );
 
+  const paddingRef = useRef(padding);
   useEffect(() => {
+    paddingRef.current = padding;
     mapRef.current?.easeTo({ padding, duration: 300 });
   }, [padding]);
 
@@ -251,7 +286,7 @@ export default function MapApp() {
 
   const districtList = useMemo(() => (seed ? seed.districts.features.map((f) => f.properties as DistrictProps) : []), [seed]);
 
-  let content: React.ReactNode = seed && <CitySummary t={t} locale={locale} meta={seed.meta} />;
+  let content: React.ReactNode = seed && meta?.[seed.slug] && <CitySummary t={t} locale={locale} meta={meta[seed.slug]} />;
   if (selection?.kind === "district") {
     const d = districtsById.get(selection.id);
     if (d)
@@ -259,6 +294,7 @@ export default function MapApp() {
         <DistrictDetails
           t={t}
           locale={locale}
+          city={seed!.slug}
           district={d.properties}
           offers={districtOffers}
           onOffer={(o) => selectOffer(o.properties, o.geometry.coordinates as [number, number], true)}
@@ -289,8 +325,10 @@ export default function MapApp() {
       onLayers={setLayers}
       area={area}
       onArea={setArea}
+      hasOffers={seed?.hasOffers ?? false}
     />
   );
+  const cityPicker = meta && <CityPicker locale={locale} meta={meta} value={city} onChange={setCity} />;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">
@@ -314,7 +352,10 @@ export default function MapApp() {
         >
           <header className="flex items-center justify-between gap-3 px-5 pt-5">
             <Brand t={t} />
-            <LangToggle t={t} onToggle={() => setLocale(locale === "ar" ? "en" : "ar")} />
+            <div className="flex items-center gap-2">
+              {cityPicker}
+              <LangToggle t={t} onToggle={() => setLocale(locale === "ar" ? "en" : "ar")} />
+            </div>
           </header>
           <div className="px-5 pt-4">{search}</div>
           <div className="px-5 pt-3">{controls}</div>
@@ -327,7 +368,8 @@ export default function MapApp() {
         <>
           <div className="absolute inset-x-0 top-0 space-y-2 p-3">
             <div className="flex items-center gap-2">
-              <div className="flex-1">{search}</div>
+              <div className="min-w-0 flex-1">{search}</div>
+              {cityPicker}
               <LangToggle t={t} onToggle={() => setLocale(locale === "ar" ? "en" : "ar")} />
             </div>
             {controls}
@@ -341,6 +383,37 @@ export default function MapApp() {
         </>
       )}
     </main>
+  );
+}
+
+function CityPicker({
+  locale,
+  meta,
+  value,
+  onChange,
+}: {
+  locale: Locale;
+  meta: Record<string, MarketMeta>;
+  value: string;
+  onChange: (slug: string) => void;
+}) {
+  return (
+    <label className="relative flex h-10 shrink-0 items-center rounded-full bg-surface shadow-md ring-1 ring-black/5">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-full cursor-pointer appearance-none rounded-full bg-transparent pe-8 ps-4 text-sm font-semibold outline-none"
+      >
+        {Object.entries(meta).map(([slug, m]) => (
+          <option key={slug} value={slug}>
+            {locale === "ar" ? m.city_ar : m.city_en}
+          </option>
+        ))}
+      </select>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="pointer-events-none absolute end-3 text-muted">
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </label>
   );
 }
 

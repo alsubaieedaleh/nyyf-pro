@@ -20,12 +20,13 @@
 | Q4 | Plan and parcel geometry: which source (Balady, Riyadh Royal Commission, licensed provider)? | Investigate in Phase 0; launch with district + plan level if parcels are not obtainable |
 | Q5 | Hosting region for PDPL | A Saudi or nearest GCC region; confirm with a legal check |
 | Q6 | Team and timeline: who builds, and is the 26-week plan realistic for them? | Owner to confirm |
+| Q7 | District boundaries: the current polygons come from a GPL-2.0 repository and miss some municipal districts (Makkah 39% of deals matched) | Get Balady / MOMAH boundaries or a licensed provider before commercial launch |
 
 ## Risks
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No access to parcel geometry | Map less precise than Suhail | Strong district and plan layers, broker-placed pins, partner with a data provider |
-| MOJ / REGA data terms change or lag | Stale market data | Multiple sources, show data date on every number |
+| MOJ / REGA data terms change or lag | Stale market data | Multiple sources, show data date on every number. Today the latest MOJ month is 2026-03 (about 7 months behind) |
 | Valuation accuracy not good enough for brokers | Trust loss | Always show range and comparables; feedback loop; avoid false precision |
 | Suhail adds broker CRM features | Weaker differentiation | Move fast on workflow depth (matching, pipeline, sharing) and price for individual brokers |
 | Scraped listing data terms | Legal | Training and analysis only; brokers' own listings for display |
@@ -34,4 +35,6 @@
 ## Sources
 - Suhail: https://www.suhail.ai/ and https://bouncewatch.com/company/suhail
 - REGA Real Estate Indicators: https://rei.rega.gov.sa/en/advanced-search
+- MOJ and REGA open data mirror: https://github.com/civillizard/saudi-real-estate-data
+- National Address district polygons: https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts
 - Old nyyf code: project folder `Real-Estate-App/`

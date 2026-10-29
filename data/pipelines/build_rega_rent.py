@@ -23,7 +23,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_moj_market import OUT, normalise  # noqa: E402
+from build_moj_market import OUT, DistrictMatcher, same_city  # noqa: E402
 
 QUARTERS_USED = 4
 MIN_CONTRACTS = 5
@@ -50,18 +50,18 @@ def number(value):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rent", required=True, type=Path)
-    ap.add_argument("--region", default="Riyadh")
+    ap.add_argument("--region", default="Riyadh", help="region part of the REGA file names (Riyadh, Makkah, Madinah, EP)")
     ap.add_argument("--city", default="الرياض")
     ap.add_argument("--slug", default="riyadh")
     args = ap.parse_args()
 
     rows = []
-    for path in args.rent.glob(f"Rental-indicators-in-{args.region}-*.csv"):
+    for path in args.rent.glob(f"Rental-indicators-in-{args.region}*.csv"):
         with open(path, encoding="utf-8-sig") as fh:
             for row in csv.DictReader(fh):
                 # Header spelling changes between quarters ("متوسط الايجار  ر.س" vs "متوسط الايجار").
                 row = {re.sub(r"\s+", " ", k.replace("ر.س", "")).strip(): (v or "").strip() for k, v in row.items() if k}
-                if row.get("المدينة") != args.city or row.get("نوع العقار") not in TYPES:
+                if not same_city(row.get("المدينة", ""), args.city) or row.get("نوع العقار") not in TYPES:
                     continue
                 contracts = number(row.get("عدد الصفقات"))
                 rent = number(row.get("متوسط الايجار"))
@@ -71,7 +71,7 @@ def main():
                 rows.append(
                     {
                         "quarter": (int(row["السنة"]), int(row["الربع"])),
-                        "district": normalise(row["الحي"]),
+                        "district": row["الحي"],
                         "type": TYPES[row["نوع العقار"]],
                         "contracts": contracts,
                         "rent": rent,
@@ -84,13 +84,13 @@ def main():
 
     districts_path = OUT / f"{args.slug}-districts.geojson"
     collection = json.loads(districts_path.read_text(encoding="utf-8"))
-    by_name = {normalise(f["properties"]["name_ar"]): f for f in collection["features"]}
+    match = DistrictMatcher(collection["features"])
 
     # Contract-weighted averages over the quarters used.
     sums = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0, 0.0, 0.0]))
     unmatched = defaultdict(float)
     for r in rows:
-        f = by_name.get(r["district"])
+        f = match(r["district"])
         if f is None:
             unmatched[r["district"]] += r["contracts"]
             continue

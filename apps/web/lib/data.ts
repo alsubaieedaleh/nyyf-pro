@@ -37,6 +37,8 @@ export type MarketMeta = {
   median_ppm2_12m: number | null;
   deals_12m: number;
   value_12m: number;
+  /** [west, south, east, north] of the city's districts. */
+  bbox: [number, number, number, number];
   rent_source?: string;
   rent_quarters?: string[];
 };
@@ -84,12 +86,20 @@ export const AREA_FILTERS: Record<AreaFilter, [number, number]> = {
 
 const MIN_OFFERS_FOR_STATS = 3;
 
-export async function loadSeed() {
-  const [districts, offers, meta] = (await Promise.all([
-    fetch("/data/riyadh-districts.geojson").then((r) => r.json()),
-    fetch("/data/riyadh-offers.geojson").then((r) => r.json()),
-    fetch("/data/market-meta.json").then((r) => r.json()),
-  ])) as [FeatureCollection<District["geometry"], DistrictProps>, FeatureCollection<Point, OfferProps>, Record<string, MarketMeta>];
+/** Cities with land offers; other cities show MOJ and REGA data only. */
+const CITIES_WITH_OFFERS = new Set(["riyadh"]);
+
+const EMPTY_OFFERS: FeatureCollection<Point, OfferProps> = { type: "FeatureCollection", features: [] };
+
+export function loadMeta() {
+  return fetch("/data/market-meta.json").then((r) => r.json()) as Promise<Record<string, MarketMeta>>;
+}
+
+export async function loadCity(slug: string) {
+  const [districts, offers] = (await Promise.all([
+    fetch(`/data/${slug}-districts.geojson`).then((r) => r.json()),
+    CITIES_WITH_OFFERS.has(slug) ? fetch(`/data/${slug}-offers.geojson`).then((r) => r.json()) : EMPTY_OFFERS,
+  ])) as [FeatureCollection<District["geometry"], DistrictProps>, FeatureCollection<Point, OfferProps>];
 
   const asking = new Map<number, number[]>();
   for (const o of offers.features) {
@@ -103,23 +113,24 @@ export async function loadSeed() {
     d.properties.asking_ppm2 = askingPpm2 === null ? null : Math.round(askingPpm2);
     d.properties.gap = askingPpm2 !== null && d.properties.ppm2 ? (askingPpm2 - d.properties.ppm2) / d.properties.ppm2 : null;
   }
-  return { districts, offers, meta: meta.riyadh };
+  return { slug, districts, offers, hasOffers: CITIES_WITH_OFFERS.has(slug) };
 }
 
-let rents: Promise<Record<string, DistrictRent>> | null = null;
+const rents = new Map<string, Promise<Record<string, DistrictRent>>>();
 
 /** Rent by property type for one district. */
-export function loadDistrictRent(id: number) {
-  rents ??= fetch("/data/riyadh-rent.json").then((r) => r.json());
-  return rents.then((r) => r[String(id)] ?? null);
+export function loadDistrictRent(slug: string, id: number) {
+  if (!rents.has(slug)) rents.set(slug, fetch(`/data/${slug}-rent.json`).then((r) => r.json()));
+  return rents.get(slug)!.then((r) => r[String(id)] ?? null);
 }
 
-const markets = new Map<number, Promise<DistrictMarket>>();
+const markets = new Map<string, Promise<DistrictMarket>>();
 
 /** Quarterly prices and recent deals for one district, loaded when its sheet opens. */
-export function loadDistrictMarket(id: number) {
-  if (!markets.has(id)) markets.set(id, fetch(`/data/riyadh-deals/${id}.json`).then((r) => r.json()));
-  return markets.get(id)!;
+export function loadDistrictMarket(slug: string, id: number) {
+  const key = `${slug}/${id}`;
+  if (!markets.has(key)) markets.set(key, fetch(`/data/${slug}-deals/${id}.json`).then((r) => r.json()));
+  return markets.get(key)!;
 }
 
 let offerTexts: Promise<Record<string, string>> | null = null;

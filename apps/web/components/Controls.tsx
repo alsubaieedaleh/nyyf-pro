@@ -103,6 +103,7 @@ export function Controls({
   onLayers,
   area,
   onArea,
+  hasOffers,
 }: {
   t: Strings;
   metric: Metric;
@@ -111,6 +112,7 @@ export function Controls({
   onLayers: (l: { districts: boolean; offers: boolean }) => void;
   area: AreaFilter;
   onArea: (a: AreaFilter) => void;
+  hasOffers: boolean;
 }) {
   const areaLabels: Record<AreaFilter, string> = {
     all: `${t.area}: ${t.all}`,
@@ -121,7 +123,7 @@ export function Controls({
   return (
     <div className="space-y-2">
       <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-full bg-surface/85 p-1 shadow-sm ring-1 ring-black/5 backdrop-blur">
-        {(["ppm2", "yoy", "volume", "rent", "asking", "gap"] as Metric[]).map((m) => (
+        {(["ppm2", "yoy", "volume", "rent", ...(hasOffers ? ["asking", "gap"] : [])] as Metric[]).map((m) => (
           <button
             key={m}
             onClick={() => onMetric(m)}
@@ -133,20 +135,22 @@ export function Controls({
           </button>
         ))}
       </div>
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        <Chip active={layers.districts} onClick={() => onLayers({ ...layers, districts: !layers.districts })}>
-          {t.districts}
-        </Chip>
-        <Chip active={layers.offers} onClick={() => onLayers({ ...layers, offers: !layers.offers })}>
-          {t.offers}
-        </Chip>
-        <span className="mx-1 w-px shrink-0 bg-black/10" />
-        {(Object.keys(areaLabels) as AreaFilter[]).map((a) => (
-          <Chip key={a} active={area === a} onClick={() => onArea(a)}>
-            <span className="tabular">{areaLabels[a]}</span>
+      {hasOffers && (
+        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <Chip active={layers.districts} onClick={() => onLayers({ ...layers, districts: !layers.districts })}>
+            {t.districts}
           </Chip>
-        ))}
-      </div>
+          <Chip active={layers.offers} onClick={() => onLayers({ ...layers, offers: !layers.offers })}>
+            {t.offers}
+          </Chip>
+          <span className="mx-1 w-px shrink-0 bg-black/10" />
+          {(Object.keys(areaLabels) as AreaFilter[]).map((a) => (
+            <Chip key={a} active={area === a} onClick={() => onArea(a)}>
+              <span className="tabular">{areaLabels[a]}</span>
+            </Chip>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

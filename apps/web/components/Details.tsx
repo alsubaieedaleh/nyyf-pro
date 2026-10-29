@@ -119,6 +119,7 @@ function Sparkline({ points, locale }: { points: [string, number, number][]; loc
 export function DistrictDetails({
   t,
   locale,
+  city,
   district,
   offers,
   onOffer,
@@ -126,6 +127,7 @@ export function DistrictDetails({
 }: {
   t: Strings;
   locale: Locale;
+  city: string;
   district: DistrictProps;
   offers: Offer[];
   onOffer: (o: Offer) => void;
@@ -137,12 +139,12 @@ export function DistrictDetails({
     let live = true;
     setMarket(null);
     setRent(null);
-    loadDistrictMarket(district.id).then((m) => live && setMarket(m));
-    loadDistrictRent(district.id).then((r) => live && setRent(r));
+    loadDistrictMarket(city, district.id).then((m) => live && setMarket(m));
+    loadDistrictRent(city, district.id).then((r) => live && setRent(r));
     return () => {
       live = false;
     };
-  }, [district.id]);
+  }, [city, district.id]);
 
   const asking = median(offers.map((o) => o.properties.ppm2));
   const gap = asking && district.ppm2 ? (asking - district.ppm2) / district.ppm2 : null;

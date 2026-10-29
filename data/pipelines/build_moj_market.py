@@ -151,6 +151,7 @@ def read_deals(moj_dir: Path, city: str):
                     "class": CLASSES.get(row.get("تصنيف العقار", "").strip(), "other"),
                     "type": (row.get("نوع العقار") or "").strip() or None,
                     "plan": plan if plan and plan != "أخرى" else None,
+                    "parcel": re.sub(r"^\s*قطعة\s*", "", row.get("رقم القطعة") or "").strip() or None,
                     "count": int(count),
                     "price": price,
                     "area": area,

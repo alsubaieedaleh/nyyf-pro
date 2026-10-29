@@ -3,6 +3,7 @@ import type { Map as MlMap, ExpressionSpecification } from "maplibre-gl";
 import { PRICE_BREAKS, PRICE_COLORS, districtFill, stepExpression, type Metric } from "./scale";
 
 export const DISTRICT_LAYERS = ["district-fill", "district-line", "district-selected", "district-labels"];
+export const PLAN_LAYERS = ["plan-points", "plan-labels"];
 export const OFFER_LAYERS = ["offer-clusters", "offer-cluster-count", "offer-points", "offer-labels", "offer-selected"];
 
 const expr = (e: unknown) => e as ExpressionSpecification;
@@ -14,7 +15,7 @@ function firstSymbolLayer(map: MlMap) {
 
 export function addLayers(
   map: MlMap,
-  data: { districts: FeatureCollection; offers: FeatureCollection },
+  data: { districts: FeatureCollection; offers: FeatureCollection; plans: FeatureCollection },
   opts: { metric: Metric; nameField: string; hasGlyphs: boolean },
 ) {
   map.addSource("districts", { type: "geojson", data: data.districts, promoteId: "id" });
@@ -26,6 +27,8 @@ export function addLayers(
     clusterMaxZoom: 14,
     clusterProperties: { ppm2_sum: ["+", ["get", "ppm2"]] },
   });
+
+  map.addSource("plans", { type: "geojson", data: data.plans, promoteId: "id" });
 
   const before = firstSymbolLayer(map);
 
@@ -65,6 +68,20 @@ export function addLayers(
     paint: { "line-color": "#0f5c59", "line-width": 2.5 },
   });
 
+  // Plans: larger dots in the estimated price colour with a dark ring, so they read apart from offers.
+  map.addLayer({
+    id: "plan-points",
+    type: "circle",
+    source: "plans",
+    minzoom: 10.5,
+    paint: {
+      "circle-color": expr(["case", ["==", ["get", "ppm2_est"], null], "#c9cfcf", stepExpression(["get", "ppm2_est"], PRICE_BREAKS, PRICE_COLORS)]),
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 15, 14],
+      "circle-stroke-width": 3,
+      "circle-stroke-color": "#0f5c59",
+    },
+  });
+
   const avgColor = expr(["/", ["get", "ppm2_sum"], ["get", "point_count"]]);
   map.addLayer({
     id: "offer-clusters",
@@ -99,6 +116,9 @@ export function addLayers(
     paint: { "circle-radius": 12, "circle-color": "rgba(0,0,0,0)", "circle-stroke-width": 3, "circle-stroke-color": "#0f5c59" },
   });
 
+  // Plans sit above the offers: there are far fewer of them and they carry the plan price.
+  map.moveLayer("plan-points");
+
   if (!opts.hasGlyphs) return;
 
   map.addLayer({
@@ -108,6 +128,14 @@ export function addLayers(
     minzoom: 11,
     layout: { "text-field": ["get", opts.nameField], "text-size": 12, "text-max-width": 8 },
     paint: { "text-color": "#1d2626", "text-halo-color": "rgba(255,255,255,0.85)", "text-halo-width": 1.2 },
+  });
+  map.addLayer({
+    id: "plan-labels",
+    type: "symbol",
+    source: "plans",
+    minzoom: 12.5,
+    layout: { "text-field": ["get", "label"], "text-size": 11, "text-offset": [0, 1.3], "text-anchor": "top", "text-max-width": 10 },
+    paint: { "text-color": "#0f5c59", "text-halo-color": "#ffffff", "text-halo-width": 1.5 },
   });
   map.addLayer({
     id: "offer-cluster-count",

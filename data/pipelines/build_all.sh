@@ -24,3 +24,8 @@ khobar|الخبر|Al Khobar|EP
 CITIES
 
 python3 data/pipelines/build_riyadh_offers.py "$OLD_NYYF/Web/muqayyim/src/assets"
+
+# Plans need the district prices (and, for Riyadh, the offers) built above.
+for c in riyadh:الرياض jeddah:جدة makkah:"مكة المكرمة" madinah:"المدينة المنورة" dammam:الدمام khobar:الخبر; do
+  python3 data/pipelines/build_plans.py --moj "$MOJ_REPO/moj/sales" --slug "${c%%:*}" --city "${c#*:}"
+done

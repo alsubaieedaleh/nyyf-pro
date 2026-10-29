@@ -4,14 +4,14 @@ import type { Point } from "geojson";
 import { Map as MlMap, setWorkerUrl, type GeoJSONSource, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AREA_FILTERS, bbox, loadCity, loadMeta, type AreaFilter, type District, type DistrictProps, type MarketMeta, type OfferProps } from "@/lib/data";
-import { formatCompact } from "@/lib/format";
+import { formatCompact, formatNumber } from "@/lib/format";
 import { strings, type Locale } from "@/lib/i18n";
-import { DISTRICT_LAYERS, OFFER_LAYERS, addLayers, setVisible } from "@/lib/layers";
+import { DISTRICT_LAYERS, OFFER_LAYERS, PLAN_LAYERS, addLayers, setVisible } from "@/lib/layers";
 import { districtFill, type Metric } from "@/lib/scale";
 import { BottomSheet } from "./BottomSheet";
 import { CitySummary, DistrictDetails, OfferDetails } from "./Details";
 import { Legend } from "./Legend";
-import { Controls, SearchBox } from "./Controls";
+import { Controls, SearchBox, type LayerState } from "./Controls";
 
 const RIYADH: [number, number] = [46.70, 24.72];
 const DEFAULT_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/positron";
@@ -27,7 +27,7 @@ const FALLBACK_STYLE: StyleSpecification = {
 };
 
 export type Selection =
-  | { kind: "district"; id: number }
+  | { kind: "district"; id: number; plan?: string }
   | { kind: "offer"; offer: OfferProps; lngLat: [number, number] }
   | null;
 
@@ -75,7 +75,7 @@ export default function MapApp() {
   const [city, setCity] = useState("riyadh");
   const [locale, setLocale] = useState<Locale>("ar");
   const [metric, setMetric] = useState<Metric>("ppm2");
-  const [layers, setLayers] = useState({ districts: true, offers: true });
+  const [layers, setLayers] = useState<LayerState>({ districts: true, plans: true, offers: true });
   const [area, setArea] = useState<AreaFilter>("all");
   const [selection, setSelection] = useState<Selection>(null);
   const [sheetHeight, setSheetHeight] = useState(0);
@@ -98,6 +98,18 @@ export default function MapApp() {
         .map((f) => ({ ...f, properties: { ...f.properties, label: formatCompact(f.properties.price, locale) } })),
     };
   }, [seed, area, locale]);
+
+  const plansWithLabels = useMemo(() => {
+    if (!seed) return null;
+    return {
+      ...seed.plans,
+      features: seed.plans.features.map((f) => {
+        const p = f.properties;
+        const price = p.ppm2_est ? ` · ${formatNumber(p.ppm2_est, locale)}` : "";
+        return { ...f, properties: { ...p, label: `${t.plan} ${p.plan}${price}` } };
+      }),
+    };
+  }, [seed, locale, t.plan]);
 
   // Create the map once.
   useEffect(() => {
@@ -173,7 +185,13 @@ export default function MapApp() {
     if (!ready || !map) return;
     setVisible(map, DISTRICT_LAYERS, layers.districts);
     setVisible(map, OFFER_LAYERS, layers.offers);
+    setVisible(map, PLAN_LAYERS, layers.plans);
   }, [layers, ready]);
+
+  useEffect(() => {
+    const source = mapRef.current?.getSource("plans") as GeoJSONSource | undefined;
+    if (ready && source && plansWithLabels) source.setData(plansWithLabels);
+  }, [plansWithLabels, ready]);
 
   useEffect(() => {
     const source = mapRef.current?.getSource("offers") as GeoJSONSource | undefined;
@@ -211,10 +229,10 @@ export default function MapApp() {
   }, [selection, ready]);
 
   const selectDistrict = useCallback(
-    (id: number) => {
+    (id: number, plan?: string) => {
       const district = districtsById.get(id);
       if (!district) return;
-      setSelection({ kind: "district", id });
+      setSelection({ kind: "district", id, plan });
       const [minX, minY, maxX, maxY] = bbox(district.geometry);
       mapRef.current?.fitBounds([minX, minY, maxX, maxY], { padding, duration: 700, maxZoom: 14.5 });
     },
@@ -238,7 +256,7 @@ export default function MapApp() {
     let hovered: number | null = null;
 
     const onMove = (e: MapMouseEvent) => {
-      const hits = map.queryRenderedFeatures(e.point, { layers: ["offer-clusters", "offer-points", "district-fill"].filter((l) => map.getLayer(l)) });
+      const hits = map.queryRenderedFeatures(e.point, { layers: ["offer-clusters", "offer-points", "plan-points", "district-fill"].filter((l) => map.getLayer(l)) });
       map.getCanvas().style.cursor = hits.length ? "pointer" : "";
       const district = hits.find((h) => h.layer.id === "district-fill");
       const id = district ? (district.properties.id as number) : null;
@@ -249,7 +267,7 @@ export default function MapApp() {
     };
 
     const onClick = async (e: MapMouseEvent) => {
-      const visible = ["offer-clusters", "offer-points", "district-fill"].filter(
+      const visible = ["offer-clusters", "offer-points", "plan-points", "district-fill"].filter(
         (l) => map.getLayer(l) && map.getLayoutProperty(l, "visibility") !== "none",
       );
       const hits: MapGeoJSONFeature[] = map.queryRenderedFeatures(e.point, { layers: visible });
@@ -263,6 +281,11 @@ export default function MapApp() {
       const point = hits.find((h) => h.layer.id === "offer-points");
       if (point) {
         selectOffer(point.properties as OfferProps, (point.geometry as Point).coordinates as [number, number], false);
+        return;
+      }
+      const plan = hits.find((h) => h.layer.id === "plan-points");
+      if (plan) {
+        selectDistrict(plan.properties.district_id as number, plan.properties.plan as string);
         return;
       }
       const district = hits.find((h) => h.layer.id === "district-fill");
@@ -296,6 +319,7 @@ export default function MapApp() {
           locale={locale}
           city={seed!.slug}
           district={d.properties}
+          plan={selection.plan}
           offers={districtOffers}
           onOffer={(o) => selectOffer(o.properties, o.geometry.coordinates as [number, number], true)}
           onClose={() => setSelection(null)}

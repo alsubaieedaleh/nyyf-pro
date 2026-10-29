@@ -17,7 +17,7 @@
 ## Decisions pending (need the owner)
 | # | Question | Recommendation |
 |---|---|---|
-| Q4 | Plan and parcel geometry: which source (Balady, Riyadh Royal Commission, licensed provider)? | Investigate in Phase 0; launch with district + plan level if parcels are not obtainable |
+| Q4 | Plan and parcel data: which source? Open data has plan numbers only for 2023-Q1 and no plan boundaries (see 10) | Get a quote from Aqarsas (plan + parcel deals with coordinates); allow SREM and Balady hosts to test the free routes. Until then: plan prices from 2023-Q1 carried forward |
 | Q5 | Hosting region for PDPL | A Saudi or nearest GCC region; confirm with a legal check |
 | Q6 | Team and timeline: who builds, and is the 26-week plan realistic for them? | Owner to confirm |
 | Q7 | District boundaries: the current polygons come from a GPL-2.0 repository and miss some municipal districts (Makkah 39% of deals matched) | Get Balady / MOMAH boundaries or a licensed provider before commercial launch |

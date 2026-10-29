@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   loadDistrictMarket,
+  loadDistrictPlans,
   loadDistrictRent,
+  type PlanRow,
   type DistrictRent,
   type RentType,
   loadOfferText,
@@ -121,6 +123,7 @@ export function DistrictDetails({
   locale,
   city,
   district,
+  plan,
   offers,
   onOffer,
   onClose,
@@ -129,18 +132,22 @@ export function DistrictDetails({
   locale: Locale;
   city: string;
   district: DistrictProps;
+  plan?: string;
   offers: Offer[];
   onOffer: (o: Offer) => void;
   onClose: () => void;
 }) {
   const [market, setMarket] = useState<DistrictMarket | null>(null);
   const [rent, setRent] = useState<DistrictRent | null>(null);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
   useEffect(() => {
     let live = true;
     setMarket(null);
     setRent(null);
+    setPlans([]);
     loadDistrictMarket(city, district.id).then((m) => live && setMarket(m));
     loadDistrictRent(city, district.id).then((r) => live && setRent(r));
+    loadDistrictPlans(city, district.id).then((p) => live && setPlans(p));
     return () => {
       live = false;
     };
@@ -188,6 +195,8 @@ export function DistrictDetails({
           <Sparkline points={market.trend} locale={locale} />
         </section>
       )}
+
+      {plans.length > 0 && <PlanList t={t} locale={locale} plans={plans} selected={plan} />}
 
       {rent && (
         <section className="mt-5">
@@ -336,5 +345,51 @@ export function OfferDetails({
         {t.share}
       </a>
     </div>
+  );
+}
+
+const PLANS_SHOWN = 8;
+
+function PlanList({ t, locale, plans, selected }: { t: Strings; locale: Locale; plans: PlanRow[]; selected?: string }) {
+  const [all, setAll] = useState(false);
+  // The selected plan always shows first; the rest stay busiest first.
+  const ordered = selected ? [...plans.filter((p) => p.plan === selected), ...plans.filter((p) => p.plan !== selected)] : plans;
+  const shown = all ? ordered : ordered.slice(0, PLANS_SHOWN);
+  return (
+    <section className="mt-5">
+      <h3 className="text-sm font-semibold">{t.plansTitle}</h3>
+      <p className="text-xs text-muted">{t.plansNote}</p>
+      <ul className="mt-1 divide-y divide-black/5">
+        {shown.map((p) => (
+          <li key={p.plan} className={`flex items-center justify-between gap-3 py-2 ${p.plan === selected ? "-mx-2 rounded-xl bg-brand/8 px-2" : ""}`}>
+            <span>
+              <span className="tabular block text-sm font-medium">
+                {t.plan} {p.plan}
+              </span>
+              <span className="tabular text-xs text-muted">
+                {formatNumber(p.deals, locale)} {t.dealsWord}
+                {p.land_ppm2_2023q1 && ` · ${t.in2023} ${formatNumber(p.land_ppm2_2023q1, locale)}`}
+                {p.asking_ppm2 && ` · ${t.askingShort} ${formatNumber(p.asking_ppm2, locale)}`}
+              </span>
+            </span>
+            <span className="tabular shrink-0 text-end text-sm">
+              {p.ppm2_est ? (
+                <>
+                  <span className="block font-semibold">{formatNumber(p.ppm2_est, locale)}</span>
+                  <span className="text-xs text-muted">{t.estNow}</span>
+                </>
+              ) : (
+                <span className="text-xs text-muted">{t.fewDeals}</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {!all && ordered.length > PLANS_SHOWN && (
+        <button onClick={() => setAll(true)} className="mt-1 text-xs font-medium text-brand">
+          {t.showAll} ({formatNumber(ordered.length, locale)})
+        </button>
+      )}
+    </section>
   );
 }

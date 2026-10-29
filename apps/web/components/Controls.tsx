@@ -95,6 +95,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
+export type LayerState = { districts: boolean; plans: boolean; offers: boolean };
+
 export function Controls({
   t,
   metric,
@@ -108,8 +110,8 @@ export function Controls({
   t: Strings;
   metric: Metric;
   onMetric: (m: Metric) => void;
-  layers: { districts: boolean; offers: boolean };
-  onLayers: (l: { districts: boolean; offers: boolean }) => void;
+  layers: LayerState;
+  onLayers: (l: LayerState) => void;
   area: AreaFilter;
   onArea: (a: AreaFilter) => void;
   hasOffers: boolean;
@@ -139,6 +141,9 @@ export function Controls({
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <Chip active={layers.districts} onClick={() => onLayers({ ...layers, districts: !layers.districts })}>
             {t.districts}
+          </Chip>
+          <Chip active={layers.plans} onClick={() => onLayers({ ...layers, plans: !layers.plans })}>
+            {t.plans}
           </Chip>
           <Chip active={layers.offers} onClick={() => onLayers({ ...layers, offers: !layers.offers })}>
             {t.offers}

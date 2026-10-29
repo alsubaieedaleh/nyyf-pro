@@ -4,7 +4,8 @@ Reads the scraped land offers from the old nyyf (Muqayyim) repo, assigns each of
 district from apps/web/public/data/riyadh-districts.geojson (run build_moj_market.py first),
 and writes:
 
-  apps/web/public/data/riyadh-offers.geojson     land offers (asking prices)
+  apps/web/public/data/riyadh-offers.geojson     land offers (asking prices, with the plan number
+                                                 when the offer text names one)
   apps/web/public/data/riyadh-offers-text.json   offer descriptions by id, loaded on demand
 
 Usage:
@@ -45,6 +46,17 @@ def to_float(value):
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+# "مخطط 3057", "مخطط رقم ٣٠٥٧", "المخطط: 3057"
+PLAN_RE = re.compile(r"مخطط\s*(?:رقم)?\s*[:\-]?\s*([0-9٠-٩]{2,5})(?![0-9٠-٩])")
+
+
+def plan_number(text):
+    """Plan (مخطط) number written in the offer text, if any."""
+    m = PLAN_RE.search(text or "")
+    return m[1].translate(ARABIC_DIGITS).lstrip("0") or None if m else None
 
 
 def clean_text(text, limit=160):
@@ -102,6 +114,7 @@ def main(assets_dir):
                     "area": round(area),
                     "ppm2": round(ppm2),
                     "district_id": district_id,
+                    "plan": plan_number(f["properties"].get("content")),
                 },
             }
         )

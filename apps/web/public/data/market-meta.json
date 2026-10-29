@@ -25,7 +25,14 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 966,
+      "with_land_price": 424,
+      "with_estimate": 409,
+      "placed": 112
+    }
   },
   "jeddah": {
     "city_ar": "جدة",
@@ -53,7 +60,14 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 426,
+      "with_land_price": 160,
+      "with_estimate": 153,
+      "placed": 0
+    }
   },
   "makkah": {
     "city_ar": "مكة المكرمة",
@@ -81,7 +95,14 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 90,
+      "with_land_price": 26,
+      "with_estimate": 24,
+      "placed": 0
+    }
   },
   "madinah": {
     "city_ar": "المدينة المنورة",
@@ -109,7 +130,14 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 153,
+      "with_land_price": 43,
+      "with_estimate": 41,
+      "placed": 0
+    }
   },
   "dammam": {
     "city_ar": "الدمام",
@@ -137,7 +165,14 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 233,
+      "with_land_price": 58,
+      "with_estimate": 44,
+      "placed": 0
+    }
   },
   "khobar": {
     "city_ar": "الخبر",
@@ -165,6 +200,13 @@
       "2025-Q3",
       "2025-Q4",
       "2026-Q1"
-    ]
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 115,
+      "with_land_price": 27,
+      "with_estimate": 20,
+      "placed": 0
+    }
   }
 }

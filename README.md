@@ -39,5 +39,6 @@ OLD_NYYF=<old nyyf repo> data/pipelines/build_all.sh
 ```
 
 `build_all.sh` runs, per city, `build_moj_market.py` (sold prices, trends, recent deals) and
-`build_rega_rent.py` (rents), then `build_riyadh_offers.py` (old Riyadh offers). Output goes to
-`apps/web/public/data/`.
+`build_rega_rent.py` (rents), then `build_riyadh_offers.py` (old Riyadh offers) and `build_plans.py`
+(plan prices). Output goes to `apps/web/public/data/`. `build_base.py --out <dir>` then exports the
+clean base tables (deals, districts, plans, rents, offers) as CSV.

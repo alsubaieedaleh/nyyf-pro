@@ -1,0 +1,63 @@
+table,column,type,unit,description
+price_index,unit_id,text,,"Unique id: city:district_id for districts, city:district_id:plan:plan_no for plans"
+price_index,level,text,,"district or plan (مخطط). Use the plan row when it has a price, else the district row"
+price_index,city,text,,"City slug: riyadh, jeddah, makkah, madinah, dammam, khobar"
+price_index,city_ar,text,,City name in Arabic
+price_index,district_id,integer,,National Address district id. Joins every table and the polygons
+price_index,district_ar,text,,District name in Arabic (National Address spelling)
+price_index,district_en,text,,District name in English
+price_index,plan_no,text,,Plan (مخطط) number as MOJ writes it. Empty on district rows
+price_index,sale_ppm2,number,SAR per m²,"Best current sale price per m². District: median residential sale in the last 12 months (24 months when under 5 sales). Plan: plan's 2023-Q1 land median × district change since"
+price_index,sale_ppm2_low,number,SAR per m²,"Low end of the usual range: sale_ppm2 × (25th percentile ÷ median) of the deals behind it"
+price_index,sale_ppm2_high,number,SAR per m²,"High end: sale_ppm2 × (75th percentile ÷ median) of the same deals"
+price_index,price_basis,text,,"How sale_ppm2 was made: district_sold_residential_12m, district_sold_residential_24m, plan_land_2023q1_x_district_growth, plan_2023q1_only_no_district_trend, plan_listed_no_price, no_price"
+price_index,deals_basis,integer,deals,Number of deals behind sale_ppm2 after outlier removal
+price_index,confidence,text,,"high, medium, low or none. From confidence_score: high ≥ 70, medium ≥ 45, low > 0"
+price_index,confidence_score,integer,0-100,"Deal count (up to 50 points, full at 100 deals) + tight price range (up to 30, IQR/median) + data age (up to 20, zero at 36 months). Capped at 60 for plan estimates (40 when the district change hit its cap) and 50 for 24-month district prices"
+price_index,confidence_reason,text,,Plain-language reason for the confidence
+price_index,land_ppm2_est,number,SAR per m²,Land price per m² today: 2023-Q1 land median × district change. On district rows it lets you compare with plan rows
+price_index,land_ppm2_2023q1,number,SAR per m²,Plan's median land sale price per m² in 2023-Q1 (plan rows only)
+price_index,district_ppm2_12m,number,SAR per m²,District's 12-month residential median (repeated on plan rows for comparison)
+price_index,district_growth_since_2023q1,number,ratio,District's 12-month median ÷ its 2023-Q1 median. Capped to 0.6–2.5
+price_index,yoy_change,number,ratio,"District's 12-month median vs the 12 months before (0.10 = +10%), repeated on plan rows"
+price_index,deals_12m,integer,deals,All district deals in the last 12 months (2025-04-01 to 2026-03-31)
+price_index,value_12m_sar,integer,SAR,Total value of those deals
+price_index,deals_total,integer,deals,All district deals 2020-01 to 2026-03
+price_index,deals_2023q1,integer,deals,Deals naming this plan in 2023-Q1 (plan rows only)
+price_index,last_deal,date,,"Date of the district's most recent deal, repeated on plan rows"
+price_index,asking_ppm2,number,SAR per m²,Median asking price per m² from old Riyadh land offers (at least 3 offers for districts)
+price_index,offers,integer,offers,Number of offers in the district or naming the plan
+price_index,ask_to_sold,number,ratio,asking_ppm2 ÷ sale_ppm2. Above 1 means sellers ask more than recent sales
+price_index,rent_apartment_year,number,SAR per year,Average annual apartment rent (REGA / Ejar contracts 2025-Q2 to 2026-Q1)
+price_index,rent_apartment_m2_year,number,SAR per m² per year,Apartment rent per m² per year
+price_index,rent_contracts,integer,contracts,All rent contracts behind the district's rent figures
+price_index,lng,number,degrees,Longitude of the map point (see geo_precision)
+price_index,lat,number,degrees,Latitude of the map point
+price_index,geo_precision,text,,"plan_point_from_offers (median point of offers naming the plan) or district_centroid. Never draw a centroid as an exact location"
+price_index,parcels_seen,text,,Parcel numbers seen in 2023-Q1 deals for the plan
+price_index,sources,text,,"Source ids the row rests on, separated by ;  See the sources sheet"
+price_index,data_as_of,date,,Date of the latest deal in the source files
+deals_clean,ref,text,,MOJ deal reference
+deals_clean,date,date,,Deal date
+deals_clean,quarter,text,,Calendar quarter (2023-Q1)
+deals_clean,district_raw,text,,District as MOJ wrote it (city/district)
+deals_clean,district_id,integer,,Matched National Address district id. Empty when no match
+deals_clean,plan,text,,Plan number (2023-Q1 deals only)
+deals_clean,parcel,text,,Parcel number (2023-Q1 deals only)
+deals_clean,geo_level,text,,"Finest location known: plan, district or city"
+deals_clean,class,text,,"residential, commercial, agricultural, industrial"
+deals_clean,type,text,,Property type in Arabic (2023-Q1 only)
+deals_clean,is_land,boolean,,True when type is قطعة أرض
+deals_clean,properties,integer,,Number of properties in the deal. Price per m² only for single-property deals
+deals_clean,price,integer,SAR,Deal price
+deals_clean,area_m2,number,m²,Deal area
+deals_clean,ppm2,integer,SAR per m²,Price per m² (single-property deals within sane bounds)
+deals_clean,outlier,boolean,,True when ppm2 is over 5× from its district and class median
+deals_clean,ppm2_usable,boolean,,"True when ppm2 is present, not an outlier and the deal is a single property"
+deals_clean,source,text,,Source id (moj_deals)
+rents_wide,rent_<type>_year,number,SAR per year,"Average annual rent for apartment, studio, floor, villa, duplex"
+rents_wide,rent_<type>_m2_year,number,SAR per m² per year,Rent per m² per year
+rents_wide,rent_<type>_contracts,integer,contracts,Contracts behind the figure
+sources,source_id,text,,Id used in the sources column of price_index
+sources,status,text,,"active, pending or planned"
+coverage,"units, priced, placed_on_map, high, medium, low, none",integer,,"Rows per city and level, rows with a price, plan rows with a map point, rows per confidence label"

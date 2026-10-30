@@ -20,7 +20,7 @@ Usage:
 
 import argparse
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -154,7 +154,6 @@ def main():
     in12 = res[res["date"].between(*WINDOW_12M)]
     d12 = in12.groupby("district_id")["ppm2"].apply(stats).unstack()
     d24 = res[res["date"].between(*WINDOW_24M)].groupby("district_id")["ppm2"].apply(stats).unstack()
-    last_deal = deals.dropna(subset=["district_id"]).groupby("district_id")["date"].max()
 
     # District land price carried to today, so district rows compare with plan rows.
     q1 = res[res["quarter"].eq(PLAN_QUARTER)]
@@ -325,7 +324,7 @@ def main():
     # ---- Excel workbook ----
     dictionary = pd.read_csv(Path(__file__).with_name("final_dictionary.csv"))
     readme = pd.DataFrame({"Nyyf Pro final dataset": [
-        f"Built {date.today().isoformat()} by data/pipelines/build_final.py from the base dataset. Data as of {AS_OF.isoformat()}.",
+        f"Built {datetime.now(timezone.utc).date().isoformat()} by data/pipelines/build_final.py from the base dataset. Data as of {AS_OF.isoformat()}.",
         "price_index: one row per district and per plan (مخطط). Use plan rows where they have a price, district rows otherwise.",
         "sale_ppm2 is the best current price per m² (SAR); sale_ppm2_low/high are the 25th and 75th percentiles.",
         "confidence (high/medium/low/none) and confidence_reason say how far to trust each price; sources lists what it rests on.",

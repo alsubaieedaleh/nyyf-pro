@@ -1,0 +1,5 @@
+# Cloudflare Pages caching. Data is refreshed weekly at most; assets are content-hashed.
+/data/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

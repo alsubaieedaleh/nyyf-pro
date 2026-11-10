@@ -10,6 +10,7 @@ map spec, data model, architecture, and roadmap. Change the docs before changing
 
 ```
 apps/web            Next.js web app + PWA (the map)
+apps/heatmap        Free public district price heat map (static site, weekly data refresh)
 apps/api            TypeScript API (Phase 1, not started)
 services/valuation  Python valuation engine (Phase 1, not started)
 data/pipelines      Data preparation scripts

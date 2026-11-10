@@ -1,0 +1,71 @@
+# Build the public heat map (static site) and, once switched on, publish it to GitHub Pages.
+#
+# Going live is a deliberate switch: the deploy job only runs when the repository variable
+# HEATMAP_PUBLISH is "true" (Settings > Secrets and variables > Actions > Variables), and Pages is set to
+# "GitHub Actions" (Settings > Pages). Until then every run just builds and checks the site.
+# Optional variables: HEATMAP_WAITLIST_URL (Pro waitlist link), HEATMAP_CF_BEACON (Cloudflare Web
+# Analytics token), HEATMAP_STYLE_URL (basemap style).
+name: Heat map deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/heatmap/**"
+      - ".github/workflows/heatmap-deploy.yml"
+  pull_request:
+    paths:
+      - "apps/heatmap/**"
+      - "data/pipelines/export_public.py"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: heatmap-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --filter @nyyf/heatmap...
+
+      - name: Build
+        env:
+          VITE_WAITLIST_URL: ${{ vars.HEATMAP_WAITLIST_URL }}
+          VITE_CF_BEACON_TOKEN: ${{ vars.HEATMAP_CF_BEACON }}
+          VITE_MAP_STYLE_URL: ${{ vars.HEATMAP_STYLE_URL }}
+        run: pnpm --filter @nyyf/heatmap build
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && vars.HEATMAP_PUBLISH == 'true'
+        with:
+          path: apps/heatmap/dist
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && vars.HEATMAP_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

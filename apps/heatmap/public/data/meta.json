@@ -1,0 +1,160 @@
+{
+ "data_as_of": "2026-03-31",
+ "built_at": "2026-11-10T13:34Z",
+ "cities": [
+  {
+   "slug": "riyadh",
+   "ar": "الرياض",
+   "en": "Riyadh",
+   "bounds": [
+    46.3164,
+    24.3223,
+    47.3247,
+    25.1688
+   ],
+   "districts": 189,
+   "priced": 151,
+   "high": 82,
+   "median_ppm2": 3800,
+   "breaks": [
+    1750,
+    3000,
+    4500,
+    7250
+   ]
+  },
+  {
+   "slug": "jeddah",
+   "ar": "جدة",
+   "en": "Jeddah",
+   "bounds": [
+    38.9467,
+    21.0517,
+    39.528,
+    21.9968
+   ],
+   "districts": 170,
+   "priced": 109,
+   "high": 87,
+   "median_ppm2": 2841,
+   "breaks": [
+    1250,
+    2250,
+    3250,
+    4000
+   ]
+  },
+  {
+   "slug": "makkah",
+   "ar": "مكة المكرمة",
+   "en": "Makkah",
+   "bounds": [
+    39.6021,
+    21.1665,
+    40.0572,
+    21.6089
+   ],
+   "districts": 68,
+   "priced": 49,
+   "high": 24,
+   "median_ppm2": 2250,
+   "breaks": [
+    1500,
+    2000,
+    2500,
+    3500
+   ]
+  },
+  {
+   "slug": "madinah",
+   "ar": "المدينة المنورة",
+   "en": "Madinah",
+   "bounds": [
+    38.7836,
+    23.7411,
+    40.7317,
+    25.2119
+   ],
+   "districts": 118,
+   "priced": 83,
+   "high": 39,
+   "median_ppm2": 1899,
+   "breaks": [
+    1000,
+    1500,
+    2250,
+    3250
+   ]
+  },
+  {
+   "slug": "dammam",
+   "ar": "الدمام",
+   "en": "Dammam",
+   "bounds": [
+    49.7476,
+    25.905,
+    50.2342,
+    26.5273
+   ],
+   "districts": 87,
+   "priced": 60,
+   "high": 34,
+   "median_ppm2": 2328,
+   "breaks": [
+    1750,
+    2000,
+    2500,
+    3000
+   ]
+  },
+  {
+   "slug": "khobar",
+   "ar": "الخبر",
+   "en": "Al Khobar",
+   "bounds": [
+    50.0974,
+    26.0816,
+    50.2408,
+    26.3857
+   ],
+   "districts": 44,
+   "priced": 39,
+   "high": 27,
+   "median_ppm2": 3233,
+   "breaks": [
+    1250,
+    2750,
+    3750,
+    4500
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "moj_deals",
+   "ar": "وزارة العدل: صفقات البيع العقارية (البيانات المفتوحة)",
+   "en": "Ministry of Justice: real estate sales (open data)",
+   "license": "KSA Open Data License",
+   "url": "https://open.data.gov.sa"
+  },
+  {
+   "id": "rega_rent",
+   "ar": "الهيئة العامة للعقار: مؤشرات الإيجار (إيجار)",
+   "en": "Real Estate General Authority (REGA): rental indicators (Ejar)",
+   "license": "KSA Open Data License",
+   "url": "https://open.data.gov.sa"
+  },
+  {
+   "id": "na_districts",
+   "ar": "حدود الأحياء: العنوان الوطني عبر مستودع homaily/Saudi-Arabia-Regions-Cities-and-Districts",
+   "en": "District boundaries: National Address, via homaily/Saudi-Arabia-Regions-Cities-and-Districts",
+   "license": "GPL-2.0",
+   "url": "https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts"
+  }
+ ],
+ "totals": {
+  "districts": 676,
+  "priced": 491,
+  "high": 293
+ }
+}

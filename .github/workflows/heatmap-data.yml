@@ -1,0 +1,87 @@
+# Weekly refresh of the public district price map data from the open sources.
+#
+# Rebuilds the MOJ and REGA district prices, runs the quality gates in export_public.py, and commits
+# apps/heatmap/public/data only when the numbers changed. A failed gate fails this run (GitHub emails
+# the repo owner) and the last good data stays live. Cost: free on a public repo (about 5 minutes a week).
+name: Heat map data refresh
+
+on:
+  schedule:
+    - cron: "0 3 * * 0" # Sundays 06:00 Riyadh time
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Publish even if a quality gate fails (only after checking the change)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: heatmap-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: data/pipelines/requirements.txt
+
+      - run: pip install -r data/pipelines/requirements.txt
+
+      - name: Fetch the open data mirrors
+        run: |
+          git clone --depth 1 https://github.com/civillizard/saudi-real-estate-data "$RUNNER_TEMP/moj"
+          git clone --depth 1 https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts "$RUNNER_TEMP/boundaries"
+          echo "MOJ mirror at $(git -C "$RUNNER_TEMP/moj" log -1 --format='%h %cs')"
+
+      - name: Build district prices (MOJ deals, REGA rents)
+        env:
+          MOJ_REPO: ${{ runner.temp }}/moj
+          BOUNDARIES: ${{ runner.temp }}/boundaries
+        run: bash data/pipelines/build_all.sh
+
+      - name: Build the final dataset
+        run: |
+          python data/pipelines/build_base.py --moj "$RUNNER_TEMP/moj/moj/sales" --out "$RUNNER_TEMP/base"
+          python data/pipelines/build_final.py --base "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/final"
+
+      - name: Export public data behind quality gates
+        run: |
+          python data/pipelines/export_public.py --final "$RUNNER_TEMP/final" \
+            --out apps/heatmap/public/data ${{ inputs.force && '--force' || '' }} | tee "$RUNNER_TEMP/export.txt"
+          { echo '### Heat map data'; echo '```'; cat "$RUNNER_TEMP/export.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit changed data
+        id: commit
+        run: |
+          if git diff --quiet -- apps/heatmap/public/data; then
+            echo "No change in the public data."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/heatmap/public/data
+          git commit -m "Refresh heat map data ($(jq -r .data_as_of apps/heatmap/public/data/meta.json))"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: refresh
+    if: needs.refresh.outputs.changed == 'true'
+    uses: ./.github/workflows/heatmap-deploy.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

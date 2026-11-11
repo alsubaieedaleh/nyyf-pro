@@ -1,6 +1,6 @@
 {
  "data_as_of": "2026-03-31",
- "built_at": "2026-11-11T07:58Z",
+ "built_at": "2026-11-11T08:10Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_land": {
@@ -107,21 +107,21 @@
      "breaks": [
       180,
       210,
-      260,
+      270,
       350
      ],
-     "priced": 169,
-     "median": 245
+     "priced": 168,
+     "median": 244
     },
     "rent_villa": {
      "breaks": [
       150,
       175,
       275,
-      425
+      400
      ],
-     "priced": 145,
-     "median": 229
+     "priced": 139,
+     "median": 219
     },
     "rent_floor": {
      "breaks": [
@@ -130,8 +130,8 @@
       230,
       300
      ],
-     "priced": 155,
-     "median": 200
+     "priced": 153,
+     "median": 199
     },
     "rent_studio": {
      "breaks": [
@@ -140,28 +140,28 @@
       550,
       650
      ],
-     "priced": 142,
-     "median": 507
+     "priced": 138,
+     "median": 503
     },
     "rent_apartment_year": {
      "breaks": [
       20000,
       24000,
-      30000,
+      29000,
       38000
      ],
-     "priced": 169,
-     "median": 25940
+     "priced": 168,
+     "median": 25909
     },
     "rent_villa_year": {
      "breaks": [
       45000,
       60000,
       85000,
-      120000
+      115000
      ],
-     "priced": 145,
-     "median": 71944
+     "priced": 139,
+     "median": 71873
     },
     "rent_floor_year": {
      "breaks": [
@@ -170,18 +170,18 @@
       45000,
       57500
      ],
-     "priced": 155,
-     "median": 41042
+     "priced": 153,
+     "median": 40960
     },
     "rent_studio_year": {
      "breaks": [
-      15000,
-      18000,
+      14000,
+      17000,
       21000,
-      26000
+      25000
      ],
-     "priced": 142,
-     "median": 19323
+     "priced": 138,
+     "median": 19083
     }
    }
   },
@@ -246,17 +246,17 @@
       205,
       230
      ],
-     "priced": 134,
+     "priced": 132,
      "median": 188
     },
     "rent_villa": {
      "breaks": [
       130,
       160,
-      190,
+      180,
       270
      ],
-     "priced": 93,
+     "priced": 91,
      "median": 168
     },
     "rent_floor": {
@@ -266,7 +266,7 @@
       180,
       240
      ],
-     "priced": 85,
+     "priced": 84,
      "median": 164
     },
     "rent_studio": {
@@ -276,8 +276,8 @@
       440,
       520
      ],
-     "priced": 98,
-     "median": 421
+     "priced": 97,
+     "median": 419
     },
     "rent_apartment_year": {
      "breaks": [
@@ -286,38 +286,38 @@
       23000,
       25500
      ],
-     "priced": 134,
-     "median": 22362
+     "priced": 132,
+     "median": 22333
     },
     "rent_villa_year": {
      "breaks": [
-      40000,
+      42500,
       50000,
       60000,
       77500
      ],
-     "priced": 93,
+     "priced": 91,
      "median": 54364
     },
     "rent_floor_year": {
      "breaks": [
       26000,
-      32000,
+      31000,
       36000,
-      48000
+      47000
      ],
-     "priced": 85,
-     "median": 34067
+     "priced": 84,
+     "median": 34033
     },
     "rent_studio_year": {
      "breaks": [
       13250,
       14000,
       15000,
-      17500
+      17250
      ],
-     "priced": 98,
-     "median": 14613
+     "priced": 97,
+     "median": 14568
     }
    }
   },
@@ -387,33 +387,33 @@
     },
     "rent_villa": {
      "breaks": [
-      100,
+      95,
       115,
-      140,
-      180
+      135,
+      160
      ],
-     "priced": 28,
-     "median": 126
+     "priced": 27,
+     "median": 123
     },
     "rent_floor": {
      "breaks": [
       95,
       100,
-      120,
-      160
+      115,
+      145
      ],
-     "priced": 54,
-     "median": 109
+     "priced": 51,
+     "median": 105
     },
     "rent_studio": {
      "breaks": [
       210,
-      260,
-      320,
-      400
+      250,
+      310,
+      370
      ],
-     "priced": 45,
-     "median": 281
+     "priced": 43,
+     "median": 272
     },
     "rent_apartment_year": {
      "breaks": [
@@ -430,30 +430,30 @@
       25000,
       35000,
       45000,
-      70000
+      62500
      ],
-     "priced": 28,
-     "median": 39142
+     "priced": 27,
+     "median": 38452
     },
     "rent_floor_year": {
      "breaks": [
-      16000,
+      15000,
       21000,
       23000,
-      30000
+      26000
      ],
-     "priced": 54,
-     "median": 21953
+     "priced": 51,
+     "median": 21819
     },
     "rent_studio_year": {
      "breaks": [
       9250,
       10500,
       11000,
-      12750
+      12500
      ],
-     "priced": 45,
-     "median": 10758
+     "priced": 43,
+     "median": 10745
     }
    }
   },
@@ -518,7 +518,7 @@
       130,
       140
      ],
-     "priced": 100,
+     "priced": 99,
      "median": 126
     },
     "rent_villa": {
@@ -535,11 +535,11 @@
      "breaks": [
       95,
       105,
-      130,
+      125,
       145
      ],
-     "priced": 65,
-     "median": 116
+     "priced": 63,
+     "median": 115
     },
     "rent_studio": {
      "breaks": [
@@ -555,11 +555,11 @@
      "breaks": [
       15750,
       16750,
-      18250,
-      19250
+      18000,
+      19000
      ],
-     "priced": 100,
-     "median": 17387
+     "priced": 99,
+     "median": 17375
     },
     "rent_villa_year": {
      "breaks": [
@@ -576,10 +576,10 @@
       17000,
       22000,
       26000,
-      30000
+      29000
      ],
-     "priced": 65,
-     "median": 24308
+     "priced": 63,
+     "median": 23846
     },
     "rent_studio_year": {
      "breaks": [
@@ -654,7 +654,7 @@
       170,
       195
      ],
-     "priced": 76,
+     "priced": 75,
      "median": 163
     },
     "rent_villa": {
@@ -670,32 +670,32 @@
     "rent_floor": {
      "breaks": [
       110,
-      135,
-      150,
-      185
+      130,
+      145,
+      175
      ],
-     "priced": 49,
+     "priced": 48,
      "median": 139
     },
     "rent_studio": {
      "breaks": [
       290,
       320,
-      370,
-      420
+      360,
+      410
      ],
-     "priced": 61,
-     "median": 342
+     "priced": 60,
+     "median": 340
     },
     "rent_apartment_year": {
      "breaks": [
       15000,
       18000,
-      20500,
+      20000,
       24000
      ],
-     "priced": 76,
-     "median": 18847
+     "priced": 75,
+     "median": 18784
     },
     "rent_villa_year": {
      "breaks": [
@@ -712,10 +712,10 @@
       22000,
       27000,
       31000,
-      36000
+      35000
      ],
-     "priced": 49,
-     "median": 29922
+     "priced": 48,
+     "median": 29574
     },
     "rent_studio_year": {
      "breaks": [
@@ -724,8 +724,8 @@
       13500,
       17000
      ],
-     "priced": 61,
-     "median": 12277
+     "priced": 60,
+     "median": 12230
     }
    }
   },
@@ -947,12 +947,12 @@
     "rent_studio": {
      "breaks": [
       140,
-      200,
+      190,
       250,
-      320
+      310
      ],
-     "priced": 54,
-     "median": 222
+     "priced": 53,
+     "median": 219
     },
     "rent_apartment_year": {
      "breaks": [
@@ -991,8 +991,8 @@
       12500,
       14500
      ],
-     "priced": 54,
-     "median": 11306
+     "priced": 53,
+     "median": 11145
     }
    }
   },
@@ -1074,10 +1074,10 @@
      "breaks": [
       140,
       180,
-      280,
-      370
+      270,
+      360
      ],
-     "priced": 21,
+     "priced": 19,
      "median": 218
     },
     "rent_apartment_year": {
@@ -1114,10 +1114,10 @@
      "breaks": [
       7500,
       10000,
-      13000,
-      16000
+      12500,
+      15500
      ],
-     "priced": 21,
+     "priced": 19,
      "median": 10664
     }
    }

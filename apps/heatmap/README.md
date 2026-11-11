@@ -115,6 +115,8 @@ so the report is too; it refreshes on its own when a new quarter is published.
   under 75% at medium. Riyadh is at about 29% after the move to the Real Estate Registry.
 - Windows and the data date come from the latest deal, and confidence falls as the data ages.
 - Year-on-year change needs 20+ priced deals in each year.
+- Rents: a district's rent per m² more than 3x off its city's median for that type is hidden (corporate leases
+  filed as studios or apartments), and port and airport grounds get no rents.
 
 ## Sign-ups (people interested in Nyyf)
 

@@ -194,6 +194,37 @@ def type_fields(did, sales, rents):
     return out
 
 
+RENT_BAND = 3  # a district rent per m2 outside a third to three times the city median for its type is hidden
+# Ports and airport grounds have no housing; their "rents" are staff or corporate leases. Districts merely named
+# after an airport or an old industrial area (Madinah's حي المطار, Riyadh's حي الصناعية) do have housing, at
+# normal rents, so they stay and only the median band applies to them.
+NON_RESIDENTIAL = ("ميناء", "مطار الملك")
+
+
+def clean_rents(by_city):
+    """Hide rent cells that are not housing.
+
+    REGA's averages carry some corporate leases filed as a studio or apartment (a port district at 140,000
+    SAR a year for a "studio"). A cell more than RENT_BAND times off its city's median per m2 for that type is
+    hidden, and port and airport grounds get no rents at all."""
+    hidden = defaultdict(int)
+    for slug, rows in by_city.items():
+        for t in RENT_TYPES:
+            vals = [p[f"rent_{t}"] for p, _ in rows if p[f"rent_{t}"] is not None]
+            if len(vals) < 5:
+                continue
+            med = statistics.median(vals)
+            for p, _ in rows:
+                v = p[f"rent_{t}"]
+                odd = v is not None and not med / RENT_BAND <= v <= med * RENT_BAND
+                if odd or (v is not None and any(w in p["name_ar"] for w in NON_RESIDENTIAL)):
+                    p[f"rent_{t}"] = p[f"rent_{t}_year"] = None
+                    p[f"rent_{t}_conf"] = "none"
+                    hidden[slug] += 1
+    if hidden:
+        print("rent cells hidden (off the city median or not housing): " + ", ".join(f"{k} {v}" for k, v in hidden.items()))
+
+
 def build(final_dir, base_dir):
     sales = {(r["district_id"], r["type"]): r for r in read_csv(base_dir / "sales_by_type.csv")}
     rents = {r["district_id"]: r for r in read_csv(final_dir / "rents_wide.csv")}
@@ -245,6 +276,8 @@ def build(final_dir, base_dir):
         features.append({"type": "Feature", "id": len(features), "properties": props,
                          "geometry": round_coords(mapping(geom))})
         by_city[p["city"]].append((props, geom))
+
+    clean_rents(by_city)
 
     # Publish a city only when enough districts get a confident (high or medium) sale price for at least one
     # property type: the sale map by type is the main view, so a city with rents only would open empty.

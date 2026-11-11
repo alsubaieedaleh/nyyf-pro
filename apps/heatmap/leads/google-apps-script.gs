@@ -125,6 +125,8 @@ function reportEmail_(c, city, locale, unsubLink) {
           (ar ? "left" : "right") + "'>" + cell(d) + "</td></tr>";
       }).join("") + "</table>";
   };
+  const qEnd = new Date(Date.UTC(Number(c.quarter.slice(0, 4)), Number(c.quarter.slice(-1)) * 3, 1));
+  const ageMonths = Math.floor((Date.now() - qEnd.getTime()) / (30.4 * 864e5));
   const body = Object.keys(c.segments).map(function (k) {
     const s = c.segments[k];
     const type = k === "all" ? "land" : k;
@@ -143,6 +145,8 @@ function reportEmail_(c, city, locale, unsubLink) {
     "<p style='color:#666;font-size:13px;margin-top:0'>" + quarter(c.from) + " – " + quarter(c.quarter) + (ar ? " مقابل " : " against ") +
     quarter(c.vs_from) + " – " + quarter(c.vs) + ". " +
     (ar ? "السهم: منذ كم ربع والحي فوق (أو تحت) العام الماضي." : "The count: quarters in a row above (or below) last year.") + "</p>" +
+    (ageMonths > 6 ? "<p style='background:#fff6e5;color:#7a5200;padding:8px 12px;border-radius:8px;font-size:13px'>" +
+      (ar ? "هذه آخر بيانات أحياء منشورة لهذه المدينة، وعمرها " + ageMonths + " شهرًا." : "This is the latest district data published for this city, " + ageMonths + " months old.") + "</p>" : "") +
     body +
     "<p style='margin-top:24px'><a href='" + SITE_URL + "home.html?city=" + city + "#report' style='background:#157d79;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none'>" +
     (ar ? "التقرير كاملًا" : "Full report") + "</a></p>" +

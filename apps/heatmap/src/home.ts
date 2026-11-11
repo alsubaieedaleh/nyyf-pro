@@ -163,6 +163,10 @@ function reportSection(rc: RCity) {
     }</div>`;
   const streakTag = (d: RDistrict) =>
     `<small class="streak ${d.chg > 0 ? "up" : "down"}" title="${(d.chg > 0 ? s.streakUp : s.streakDown)(q(d.streak))}">${d.chg > 0 ? "▲" : "▼"} ${q(d.streak)}</small>`;
+  const age = (q: string) => {
+    const end = new Date(Date.UTC(Number(q.slice(0, 4)), Number(q.slice(-1)) * 3, 1));
+    return Math.floor((Date.now() - end.getTime()) / (30.4 * 864e5));
+  };
   const range = (a: string, b: string) => (a === b ? fmtQuarter(b, locale) : `${fmtQuarter(a, locale)} – ${fmtQuarter(b, locale)}`);
   return `<section class="weekly" id="report">
       <div class="wk-head">
@@ -181,6 +185,7 @@ function reportSection(rc: RCity) {
         ${table(s.wkFallers, sg.fallers, (d) => `${pct(d.chg)} ${streakTag(d)}`)}
         ${table(s.wkActive, sg.active, (d) => `${fmtNumber(d.n, locale)} <small>${s.deeds}</small> ${d.n_chg != null ? pct(d.n_chg) : ""}`)}
       </div>
+      ${age(rc.quarter) > 6 ? `<p class="stale">${s.oldData(fmtNumber(age(rc.quarter), locale))}</p>` : ""}
       <p class="fine muted">${rc.source === "rega" ? s.srcRega : s.srcMoj}${sg.excluded ? ` ${s.excluded(fmtNumber(sg.excluded, locale))}` : ""}${
         rc.source === "moj" && rc.moj_coverage < 0.75 ? ` ${s.lowCoverage(fmtPercent(rc.moj_coverage, locale).replace(/^[+\u200e]+/, ""))}` : ""
       }</p>

@@ -36,6 +36,7 @@ interface City {
   bounds: [number, number, number, number];
   districts: number;
   sale_window: string | null;
+  match?: number | null;
   metrics: Record<MetricKey, { breaks: number[]; priced: number; median: number | null }>;
 }
 
@@ -376,7 +377,10 @@ function renderLegend() {
       <span class="muted">${s.legendConf}</span>
     </div>
     <div class="legend-foot"><span class="muted">${esc(s.priced(m?.priced ?? 0, c.districts))}</span></div>
+    ${mode === "sale" && c.match != null && c.match < 0.85 ? `<div class="legend-foot"><span class="muted">${esc(s.matchNote(fmtPercent(c.match, locale).replace(/^[+\u200e]+/, "")))}</span></div>` : ""}
     <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
+  // The zoom buttons sit just above the legend, whose height changes with its notes.
+  document.documentElement.style.setProperty("--legend-h", `${$("legend").offsetHeight}px`);
 }
 
 function confBadge(c: Conf) {

@@ -42,6 +42,8 @@ MIN_DEALS = 20  # MOJ priced deals per district in each window
 # A move beyond this in a year almost always means a different mix (one large raw-land deed, a new project),
 # not a district repricing, so such comparisons are counted as "excluded" instead of ranked.
 MAX_MOVE = 0.75
+MAX_COUNT_RATIO = 3  # the two windows' deal counts must be within this factor
+MIN_MOJ_MATCH = 0.6  # share of a city's MOJ deals matched to a district before MOJ can be its source
 MAX_GAP = 2  # quarters the registry may lag MOJ and still be the source
 MIN_COVERAGE = 0.75  # below this share of its usual volume, MOJ is not a fair sample of a city
 # Pick: the preferred source when it compares 15+ districts, else the one that compares the most (5+ needed).
@@ -61,14 +63,16 @@ def load_moj(path: Path):
     """city -> district -> quarter -> [ppm2]; city -> quarter -> deal count."""
     prices = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     volume = defaultdict(lambda: defaultdict(int))
+    matched = defaultdict(lambda: defaultdict(int))
     with gzip.open(path, "rt", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if r["class"] != "residential":
                 continue
             volume[r["city"]][r["quarter"]] += 1
+            matched[r["city"]][r["quarter"]] += r["geo_level"] != "city"
             if r["geo_level"] == "district" and r["district_id"] and r["ppm2_usable"] == "True" and r["ppm2"]:
                 prices[r["city"]][r["district_id"]][r["quarter"]].append(float(r["ppm2"]))
-    return prices, volume
+    return prices, volume, matched
 
 
 def load_rega(path: Path):
@@ -126,6 +130,8 @@ def rank(series: dict, latest: str, have: set, min_n: int, names: dict):
             a, b = agg(qs, n), agg(qs, n - 4)
             if not a or not b or a[1] < min_n or b[1] < min_n:
                 return None
+            if max(a[1], b[1]) > MAX_COUNT_RATIO * min(a[1], b[1]):
+                return None  # deal count changed so much that the mix, not the price, moved
             return a[0] / b[0] - 1
 
         chg = yoy(L)
@@ -211,7 +217,7 @@ def main():
     geo = json.loads(args.districts.read_text(encoding="utf-8"))
     names = {f["properties"]["id"]: f["properties"] for f in geo["features"]}
     published = {f["properties"]["city"] for f in geo["features"]}
-    moj, volume = load_moj(args.deals)
+    moj, volume, matched = load_moj(args.deals)
     rega = load_rega(args.rega)
 
     cities = {}
@@ -227,7 +233,9 @@ def main():
         if rega_q:
             rega_ok = cov < MIN_COVERAGE or not moj_q or qnum(moj_q) - qnum(rega_q) <= MAX_GAP
             candidates.append(("rega", rega_q, rega_ok))
-        if moj_q:
+        recent = [q for q in volume.get(slug, {}) if moj_q and qnum(moj_q) - 4 < qnum(q) <= qnum(moj_q)]
+        moj_match = sum(matched[slug][q] for q in recent) / max(1, sum(volume[slug][q] for q in recent))
+        if moj_q and moj_match >= MIN_MOJ_MATCH:
             candidates.append(("moj", moj_q, cov >= MIN_COVERAGE))
         built = []
         for source, latest, preferred in candidates:

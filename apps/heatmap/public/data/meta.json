@@ -1,6 +1,6 @@
 {
  "data_as_of": "2026-03-31",
- "built_at": "2026-11-11T06:56Z",
+ "built_at": "2026-11-11T07:23Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_land": {
@@ -47,29 +47,30 @@
     1750,
     3000,
     4500,
-    7000
+    7250
    ],
-   "sale_window": "2024-Q4..2025-Q3",
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.989,
    "metrics": {
     "sale_land": {
      "breaks": [
       1750,
       2500,
-      3250,
+      3500,
       5000
      ],
-     "priced": 153,
-     "median": 2903
+     "priced": 155,
+     "median": 2971
     },
     "sale_villa": {
      "breaks": [
       3000,
       4500,
       5500,
-      9000
+      8500
      ],
-     "priced": 130,
-     "median": 4920
+     "priced": 131,
+     "median": 4891
     },
     "sale_apartment": {
      "breaks": [
@@ -78,8 +79,8 @@
       7500,
       9500
      ],
-     "priced": 100,
-     "median": 6353
+     "priced": 101,
+     "median": 6375
     },
     "rent_apartment": {
      "breaks": [
@@ -125,35 +126,36 @@
    ],
    "districts": 170,
    "priced": 109,
-   "high": 80,
-   "median_ppm2": 2918,
+   "high": 79,
+   "median_ppm2": 2841,
    "breaks": [
     1250,
     2250,
     3250,
     4000
    ],
-   "sale_window": "2024-Q4..2025-Q3",
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.899,
    "metrics": {
     "sale_land": {
      "breaks": [
       1250,
       2000,
       3250,
-      4500
+      4250
      ],
      "priced": 115,
-     "median": 2443
+     "median": 2472
     },
     "sale_villa": {
      "breaks": [
       3500,
       4500,
       6000,
-      8500
+      9000
      ],
-     "priced": 66,
-     "median": 5075
+     "priced": 64,
+     "median": 5237
     },
     "sale_apartment": {
      "breaks": [
@@ -162,8 +164,8 @@
       3750,
       4500
      ],
-     "priced": 50,
-     "median": 3621
+     "priced": 52,
+     "median": 3611
     },
     "rent_apartment": {
      "breaks": [
@@ -217,27 +219,28 @@
     2500,
     3500
    ],
-   "sale_window": "2024-Q4..2025-Q3",
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.666,
    "metrics": {
     "sale_land": {
      "breaks": [
-      1250,
+      1000,
       1750,
-      2500,
+      2250,
       3500
      ],
-     "priced": 41,
-     "median": 1952
+     "priced": 42,
+     "median": 2038
     },
     "sale_villa": {
      "breaks": [
       2750,
       3250,
       3750,
-      5500
+      5750
      ],
-     "priced": 22,
-     "median": 3424
+     "priced": 23,
+     "median": 3432
     },
     "sale_apartment": {
      "breaks": [
@@ -246,8 +249,8 @@
       3500,
       4000
      ],
-     "priced": 23,
-     "median": 3201
+     "priced": 24,
+     "median": 3246
     },
     "rent_apartment": {
      "breaks": [
@@ -302,6 +305,7 @@
     3250
    ],
    "sale_window": "2024-Q1..2024-Q4",
+   "match": 0.984,
    "metrics": {
     "sale_land": {
      "breaks": [
@@ -385,17 +389,18 @@
     2500,
     3000
    ],
-   "sale_window": "2024-Q4..2025-Q3",
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.928,
    "metrics": {
     "sale_land": {
      "breaks": [
       1500,
       1750,
-      2000,
+      2250,
       2500
      ],
      "priced": 60,
-     "median": 1902
+     "median": 1979
     },
     "sale_villa": {
      "breaks": [
@@ -404,8 +409,8 @@
       3250,
       4000
      ],
-     "priced": 40,
-     "median": 2929
+     "priced": 41,
+     "median": 2944
     },
     "sale_apartment": {
      "breaks": [
@@ -414,8 +419,8 @@
       3500,
       3750
      ],
-     "priced": 29,
-     "median": 3336
+     "priced": 31,
+     "median": 3305
     },
     "rent_apartment": {
      "breaks": [
@@ -464,42 +469,43 @@
    "high": 0,
    "median_ppm2": 3233,
    "breaks": [
-    1500,
+    1250,
     2750,
     3750,
     4500
    ],
-   "sale_window": "2025-Q1..2025-Q3",
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.676,
    "metrics": {
     "sale_land": {
      "breaks": [
       1750,
       2250,
       3000,
-      4250
+      4500
      ],
-     "priced": 32,
-     "median": 2492
+     "priced": 30,
+     "median": 2499
     },
     "sale_villa": {
      "breaks": [
       2500,
-      2750,
-      3250,
-      4000
+      3000,
+      3500,
+      3750
      ],
-     "priced": 12,
-     "median": 3076
+     "priced": 11,
+     "median": 3187
     },
     "sale_apartment": {
      "breaks": [
-      3750,
+      3500,
       4000,
-      4500,
+      4250,
       5250
      ],
      "priced": 16,
-     "median": 4239
+     "median": 4132
     },
     "rent_apartment": {
      "breaks": [
@@ -534,164 +540,6 @@
    }
   },
   {
-   "slug": "taif",
-   "ar": "الطائف",
-   "en": "Taif",
-   "bounds": [
-    40.2547,
-    21.0402,
-    40.9025,
-    21.6724
-   ],
-   "districts": 118,
-   "priced": 52,
-   "high": 13,
-   "median_ppm2": 1538,
-   "breaks": [
-    750,
-    1250,
-    2000,
-    2500
-   ],
-   "sale_window": "2025-Q1..2025-Q3",
-   "metrics": {
-    "sale_land": {
-     "breaks": [
-      750,
-      1250,
-      2000,
-      2250
-     ],
-     "priced": 30,
-     "median": 1649
-    },
-    "sale_villa": {
-     "breaks": [],
-     "priced": 2,
-     "median": 2569
-    },
-    "sale_apartment": {
-     "breaks": [
-      2500,
-      2750,
-      3250,
-      3500
-     ],
-     "priced": 18,
-     "median": 3046
-    },
-    "rent_apartment": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 61,
-     "median": 113
-    },
-    "rent_villa": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 20,
-     "median": 102
-    },
-    "rent_floor": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 48,
-     "median": 95
-    }
-   }
-  },
-  {
-   "slug": "hail",
-   "ar": "حائل",
-   "en": "Hail",
-   "bounds": [
-    41.5689,
-    27.3678,
-    41.816,
-    27.6583
-   ],
-   "districts": 42,
-   "priced": 28,
-   "high": 4,
-   "median_ppm2": 799,
-   "breaks": [
-    500,
-    750,
-    1000,
-    1250
-   ],
-   "sale_window": "2025-Q1..2025-Q2",
-   "metrics": {
-    "sale_land": {
-     "breaks": [
-      750,
-      1000,
-      1250,
-      1500
-     ],
-     "priced": 21,
-     "median": 979
-    },
-    "sale_villa": {
-     "breaks": [],
-     "priced": 0,
-     "median": null
-    },
-    "sale_apartment": {
-     "breaks": [
-      1500,
-      2500,
-      2750,
-      3250
-     ],
-     "priced": 5,
-     "median": 2513
-    },
-    "rent_apartment": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 34,
-     "median": 112
-    },
-    "rent_villa": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 27,
-     "median": 74
-    },
-    "rent_floor": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 29,
-     "median": 84
-    }
-   }
-  },
-  {
    "slug": "hofuf",
    "ar": "الهفوف",
    "en": "Al Hofuf",
@@ -711,7 +559,8 @@
     1500,
     1750
    ],
-   "sale_window": "2025-Q1..2025-Q3",
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.654,
    "metrics": {
     "sale_land": {
      "breaks": [
@@ -720,8 +569,8 @@
       1750,
       2250
      ],
-     "priced": 53,
-     "median": 1576
+     "priced": 48,
+     "median": 1624
     },
     "sale_villa": {
      "breaks": [],
@@ -736,7 +585,7 @@
       3750
      ],
      "priced": 12,
-     "median": 2931
+     "median": 3058
     },
     "rent_apartment": {
      "breaks": [
@@ -771,80 +620,6 @@
    }
   },
   {
-   "slug": "kharj",
-   "ar": "الخرج",
-   "en": "Al Kharj",
-   "bounds": [
-    47.1786,
-    23.8654,
-    47.7646,
-    24.2548
-   ],
-   "districts": 43,
-   "priced": 20,
-   "high": 0,
-   "median_ppm2": 727,
-   "breaks": [
-    500,
-    750,
-    1000,
-    1250
-   ],
-   "sale_window": "2025-Q1..2025-Q3",
-   "metrics": {
-    "sale_land": {
-     "breaks": [
-      500,
-      750,
-      1000,
-      1250
-     ],
-     "priced": 15,
-     "median": 868
-    },
-    "sale_villa": {
-     "breaks": [],
-     "priced": 0,
-     "median": null
-    },
-    "sale_apartment": {
-     "breaks": [],
-     "priced": 3,
-     "median": 1727
-    },
-    "rent_apartment": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 15,
-     "median": 108
-    },
-    "rent_villa": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 11,
-     "median": 79
-    },
-    "rent_floor": {
-     "breaks": [
-      250,
-      500,
-      750,
-      1000
-     ],
-     "priced": 15,
-     "median": 83
-    }
-   }
-  },
-  {
    "slug": "hafar",
    "ar": "حفر الباطن",
    "en": "Hafar Al Batin",
@@ -864,17 +639,18 @@
     750,
     1000
    ],
-   "sale_window": "2025-Q1..2025-Q3",
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.852,
    "metrics": {
     "sale_land": {
      "breaks": [
-      250,
       500,
       750,
-      1000
+      1000,
+      1250
      ],
      "priced": 27,
-     "median": 744
+     "median": 754
     },
     "sale_villa": {
      "breaks": [],
@@ -950,8 +726,8 @@
   }
  ],
  "totals": {
-  "districts": 1015,
-  "priced": 686,
-  "high": 157
+  "districts": 812,
+  "priced": 586,
+  "high": 139
  }
 }

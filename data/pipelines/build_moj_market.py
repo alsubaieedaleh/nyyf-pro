@@ -133,7 +133,7 @@ def parse_date(value: str):
     return None
 
 
-BATCH_MIN = 10  # identical-price transfers in one district within BATCH_DAYS: a programme or developer handover
+BATCH_MIN = 10  # same price and area in one district within BATCH_DAYS of the first: a programme or developer handover
 BATCH_DAYS = 7
 SKIPPED_FILES: dict = {}  # file name -> reason, for the run summary
 
@@ -143,7 +143,7 @@ def read_deals(moj_dir: Path, city: str):
 
     * A file whose deal dates do not fall in the quarter its name says is skipped (the mirror once shipped
       2024-Q2 under the 2025-Q2 name). The gap shows in the run log and in SKIPPED_FILES.
-    * Bulk batches (BATCH_MIN+ deals at the same price in one district within BATCH_DAYS) stay in the deal
+    * Bulk batches (BATCH_MIN+ deals at the same price and area in one district within BATCH_DAYS) stay in the deal
       counts, but only the first deal of a batch keeps a usable price: "batch_dup" marks the rest.
     """
     by_file = defaultdict(list)
@@ -162,25 +162,26 @@ def read_deals(moj_dir: Path, city: str):
         deals.extend(rows)
     deals = list({d["ref"] or id(d): d for d in deals}.values())
 
+    # A batch is the same price AND the same area (to 1 m2) in one district, within BATCH_DAYS of the batch's
+    # first deal. Same price alone is not enough: round prices (100,000, 500,000) repeat all year.
     groups = defaultdict(list)
     for d in deals:
-        groups[(d["district"], round(d["price"]))].append(d)
+        groups[(d["district"], round(d["price"]), round(d["area"]))].append(d)
     marked = 0
     for g in groups.values():
         if len(g) < BATCH_MIN:
             continue
         g.sort(key=lambda d: d["date"])
-        cluster = [g[0]]
-        for d in g[1:] + [None]:
-            if d is not None and (d["date"] - cluster[-1]["date"]).days <= BATCH_DAYS:
-                cluster.append(d)
-                continue
-            if len(cluster) >= BATCH_MIN:
-                for dup in cluster[1:]:
+        i = 0
+        while i < len(g):
+            j = i
+            while j + 1 < len(g) and (g[j + 1]["date"] - g[i]["date"]).days <= BATCH_DAYS:
+                j += 1
+            if j - i + 1 >= BATCH_MIN:
+                for dup in g[i + 1:j + 1]:
                     dup["batch_dup"] = True
-                marked += len(cluster) - 1
-            if d is not None:
-                cluster = [d]
+                marked += j - i
+            i = j + 1
     if marked:
         print(f"{city}: {marked} bulk-batch deals kept for counts, left out of prices")
     return deals

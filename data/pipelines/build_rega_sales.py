@@ -19,6 +19,8 @@ Usage:
 """
 
 import argparse
+import re
+from datetime import date
 import csv
 import json
 import statistics
@@ -47,6 +49,9 @@ QUARTERS_USED = 4
 PPM2_BOUNDS = {"land": (20, 60000), "default": (300, 100000)}
 OUTLIER_X = 5
 CONF = [(30, "high"), (10, "medium"), (5, "low")]  # registry deeds behind a price
+RAW_LAND_M2 = 5000  # land cells with a larger average parcel are raw tracts, left out of the land price
+PARTIAL = 0.6  # a quarter with under this share of the city's usual district deeds is incomplete
+AGE_CAPS = [(24, "low"), (12, "medium")]  # months since the window ended -> best label allowed
 
 
 def header_map(cols):
@@ -76,8 +81,44 @@ def header_map(cols):
     return m
 
 
+def file_quarter(name: str):
+    """Quarter a REGA file's name claims: "...-3rd-Q-2025.csv", "...-1stQ-2024.csv", "...-Q1-2026.csv"."""
+    m = re.search(r"(1st|2nd|3rd|4th)-?Q-?(20\d\d)", name)
+    if m:
+        return f"{m[2]}-Q{'1234'['1st 2nd 3rd 4th'.split().index(m[1])]}"
+    m = re.search(r"Q([1-4])-(20\d\d)", name)
+    return f"{m[2]}-Q{m[1]}" if m else None
+
+
+SKIPPED_ROWS = defaultdict(int)  # file -> rows whose quarter is not the one the file name says
+
+
 def read_rows(sales_dir: Path):
+    """Rows from every file, checked:
+
+    * rows whose quarter differs from the one in the file name are dropped (Hail-3rd-Q-2025.csv holds Q2 rows);
+    * a file whose rows mostly repeat an earlier file's rows (same city, district, type, quarter, deeds, value
+      and area) is a re-published copy and is skipped. Several rows per district and type are normal, so
+      duplicates are judged per file, not per row."""
+    kept = []  # sets of row fingerprints of the files read so far
     for path in sorted(sales_dir.glob("*.csv")):
+        claimed = file_quarter(path.name)
+        rows = []
+        for r in _read_file(path):
+            if claimed and r["quarter"] != claimed:
+                SKIPPED_ROWS[f"{path.name}: rows from another quarter"] += 1
+                continue
+            rows.append(r)
+        prints = {(r["city"], r["district"], r["type"], r["quarter"], r["deeds"], r["value"], r["area"]) for r in rows}
+        if prints and any(len(prints & k) > 0.5 * len(prints) for k in kept):
+            SKIPPED_ROWS[f"{path.name}: copy of an earlier file"] += len(rows)
+            continue
+        kept.append(prints)
+        yield from rows
+
+
+def _read_file(path: Path):
+    if True:
         with open(path, encoding="utf-8-sig", newline="") as fh:
             reader = csv.reader(fh)
             m = header_map(next(reader))
@@ -97,6 +138,9 @@ def read_rows(sales_dir: Path):
                 lo, hi = PPM2_BOUNDS.get(t, PPM2_BOUNDS["default"])
                 if ppm2 is not None and not lo <= ppm2 <= hi:
                     ppm2 = None
+                # Raw land tracts (average parcel over RAW_LAND_M2) swamp an area-weighted land price.
+                if t == "land" and area and area / deeds > RAW_LAND_M2:
+                    ppm2 = None
                 yield {
                     "quarter": f"{int(year)}-Q{int(q)}",
                     "city": get("city"),
@@ -106,6 +150,7 @@ def read_rows(sales_dir: Path):
                     "value": value or 0,
                     "area": area or 0,
                     "ppm2": ppm2,
+                    "cls": get("cls"),
                 }
 
 
@@ -149,6 +194,29 @@ def main():
             continue
         r["slug"] = slug
         (district_rows if r["district"] else city_rows).append(r)
+
+    # ---- Completeness: a city's quarter whose district files hold far fewer deeds than the quarters next to it
+    # (the city-level files fill in quarters with no district file) is incomplete and left out. Neighbours, not
+    # the long-run median, so a real slowdown is not mistaken for a gap. ----
+    totals = defaultdict(lambda: defaultdict(float))
+    for r in district_rows:
+        totals[r["slug"]][r["quarter"]] += r["deeds"]
+    city_totals = defaultdict(lambda: defaultdict(float))
+    for r in city_rows:
+        city_totals[r["slug"]][r["quarter"]] += r["deeds"]
+    partial = defaultdict(set)
+    qn = lambda q: int(q[:4]) * 4 + int(q[-1])
+    for slug, qs in totals.items():
+        both = {**city_totals[slug], **qs}
+        for q, v in qs.items():
+            near = [both[k] for k in both if abs(qn(k) - qn(q)) == 1]
+            if near and v < PARTIAL * statistics.median(near):
+                partial[slug].add(q)
+                print(f"WARNING: {slug} {q} district files look incomplete ({int(v)} deeds against "
+                      f"{', '.join(str(int(x)) for x in near)} next to it); quarter left out")
+    district_rows = [r for r in district_rows if r["quarter"] not in partial[r["slug"]]]
+    for name, n in sorted(SKIPPED_ROWS.items()):
+        print(f"WARNING: {name}: {n} rows dropped")
 
     # ---- City series: city-level files as given, district files summed ----
     series = {}
@@ -207,6 +275,13 @@ def main():
         n_b = sum(x["deeds"] for x in prev if x["ppm2"])
         change = round(a / b - 1, 3) if a and b and n_a >= 20 and n_b >= 20 else None
         conf = next((c for n, c in CONF if deeds >= n), "none")
+        y, qn = int(qs[-1][:4]), int(qs[-1][-1])
+        age = (date.today() - date(y + (qn == 4), 1 if qn == 4 else qn * 3 + 1, 1)).days / 30.4
+        for months, cap in AGE_CAPS:
+            if age > months and conf in ("high", "medium", "low"):
+                order = ["low", "medium", "high"]
+                conf = order[min(order.index(conf), order.index(cap))]
+                break
         if ppm2 is None or conf == "none":
             ppm2, conf = None, "none"
         out.append({
@@ -216,6 +291,14 @@ def main():
         })
 
     args.out.mkdir(parents=True, exist_ok=True)
+    # Share of each city's district deeds that matched a district polygon (the publish rule reads it).
+    match = {}
+    for slug in CITIES:
+        total = sum(r["deeds"] for r in district_rows if r["slug"] == slug)
+        if total:
+            match[slug] = {"rega_match": round(1 - unmatched[slug] / total, 3), "rega_deeds": int(total),
+                           "partial_quarters": sorted(partial[slug])}
+    (args.out / "rega_coverage.json").write_text(json.dumps(match, indent=1), encoding="utf-8")
     with open(args.out / "sales_by_type.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(out[0]))
         w.writeheader()

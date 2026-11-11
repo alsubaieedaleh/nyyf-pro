@@ -43,6 +43,7 @@ from cities import CITY_LIST  # noqa: E402
 
 CITIES = [(c["slug"], c["ar"], c["en"]) for c in CITY_LIST]
 MIN_CONFIDENT = 15  # districts with a high or medium confidence price needed to publish a city
+MIN_MATCH = 0.6  # share of a city's registry deeds that must match a district polygon
 
 # Map metrics: key -> (mode, type). Sale types come from REGA registry deeds, rents from Ejar contracts.
 METRICS = {
@@ -223,14 +224,19 @@ def build(final_dir, base_dir):
     def confident(props):
         return any(props.get(f"{k}_conf") in ("high", "medium") for k, (mode, _) in METRICS.items() if mode == "sale")
 
+    # ... and only when most of its registry deeds match a district polygon (otherwise the map is missing the
+    # districts where most sales happen). The match rate is shown per city.
+    cov_path = base_dir / "rega_coverage.json"
+    coverage = json.loads(cov_path.read_text(encoding="utf-8")) if cov_path.exists() else {}
     skipped = {}
     for slug in by_city:
         n = sum(1 for props, _ in by_city[slug] if confident(props))
-        if by_city[slug] and n < MIN_CONFIDENT:
-            skipped[slug] = n
+        match = coverage.get(slug, {}).get("rega_match", 0)
+        if by_city[slug] and (n < MIN_CONFIDENT or match < MIN_MATCH):
+            skipped[slug] = f"{n} confident, {match:.0%} matched"
     if skipped:
-        print("not published (too few confident districts): "
-              + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items(), key=lambda kv: -kv[1])))
+        print(f"not published (under {MIN_CONFIDENT} confident districts or {MIN_MATCH:.0%} of deeds matched): "
+              + "; ".join(f"{k} ({v})" for k, v in skipped.items()))
         features = [f for f in features if f["properties"]["city"] not in skipped]
         for i, f in enumerate(features):
             f["id"] = i
@@ -256,6 +262,7 @@ def build(final_dir, base_dir):
             "median_ppm2": int(statistics.median(prices)) if prices else None,
             "breaks": nice_breaks(prices),
             "sale_window": windows.get(slug),
+            "match": coverage.get(slug, {}).get("rega_match"),
             "metrics": {
                 k: {
                     "breaks": nice_breaks([r[k] for r, _ in rows if r[k] is not None]),

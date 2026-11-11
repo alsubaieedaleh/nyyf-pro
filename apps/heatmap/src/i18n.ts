@@ -35,6 +35,8 @@ export const STRINGS = {
     legendNone: "لا يوجد سعر",
     legendConf: "اللون الباهت = ثقة أقل",
     asOf: "البيانات حتى",
+    matchNote: (p: string) => `${p} من صكوك المدينة مطابقة لأحياء الخريطة؛ بعض الأحياء الجديدة بلا حدود بعد.`,
+    oldData: (m: string) => `هذه آخر بيانات أحياء منشورة لهذه المدينة، وعمرها ${m} شهرًا. ستتحدث تلقائيًا عند نشر ربع جديد.`,
     priced: (p: number, t: number) => `${p} حيًا مسعّرًا من ${t}`,
     disclaimer:
       "تقديرات استرشادية من بيانات حكومية مفتوحة، وليست تقييمًا عقاريًا معتمدًا ولا بيانات رسمية. تحقق دائمًا قبل اتخاذ أي قرار.",
@@ -171,6 +173,8 @@ export const STRINGS = {
     legendNone: "No price",
     legendConf: "Paler = lower confidence",
     asOf: "Data to",
+    matchNote: (p: string) => `${p} of the city's deeds match a district on the map; some new districts have no boundary yet.`,
+    oldData: (m: string) => `This is the latest district data published for this city, ${m} months old. It updates on its own when a new quarter is published.`,
     priced: (p: number, t: number) => `${p} of ${t} districts priced`,
     disclaimer:
       "Indicative estimates from government open data. Not a certified valuation and not official data. Always check before you decide.",

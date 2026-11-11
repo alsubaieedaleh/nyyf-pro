@@ -816,7 +816,7 @@ dialog::backdrop {
   }
   .maplibregl-ctrl-bottom-left:has(.maplibregl-ctrl-group),
   .maplibregl-ctrl-bottom-right:has(.maplibregl-ctrl-group) {
-    bottom: 190px;
+    bottom: calc(var(--legend-h, 174px) + 16px);
   }
   .sheet .sheet-body {
     max-height: none !important;

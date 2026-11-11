@@ -741,3 +741,11 @@ a.kpi:hover {
     grid-template-columns: 1fr;
   }
 }
+.stale {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff6e5;
+  color: #7a5200;
+  font-size: 13.5px;
+}

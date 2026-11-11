@@ -2,8 +2,9 @@
 
 A free, public map of price per m² by district for Saudi cities. The pipeline tries every city in
 `data/pipelines/cities.json` and publishes those where at least 15 districts get a high or medium confidence sale
-price for one property type (today: Riyadh, Jeddah, Makkah, Madinah, Dammam, Al Khobar, Taif, Hail, Al Hofuf, Al Kharj,
-Hafar Al Batin). Adding a city is one line in that file.
+price for one property type and at least 60% of the city's registry deeds match a district polygon (today: Riyadh,
+Jeddah, Makkah, Madinah, Dammam, Al Khobar, Al Hofuf, Hafar Al Batin). Where the match rate is under 85% the map legend
+says so. Adding a city is one line in that file.
 Its job is to bring people in: brokers, buyers and owners check their district, share the link, and later
 meet Nyyf Pro. Districts only; plans (مخططات), parcels and the old offers stay in Nyyf Pro.
 
@@ -88,14 +89,21 @@ so the report is too; it refreshes on its own when a new quarter is published.
   apartments together, bulk batches left out) where the registry files are old and MOJ still has the usual volume.
   The page says which.
 - Windows are half-years (last two quarters against the same two a year earlier), with 20+ deeds or sales on each
-  side. Moves beyond 75% a year are left out and counted, because they almost always mean a different mix of plots.
+  side and deal counts within 3x of each other. Moves beyond 75% a year are left out and counted, because they almost
+  always mean a different mix of plots. MOJ is a source only where 60%+ of the city's deals match a district.
+- When a city's latest district data is over 6 months old, the page and the email say so.
 
 ## Data checks in the pipeline
 
 - A MOJ file whose deal dates do not fall in the quarter its name says is skipped with a warning (the mirror's
   `MOJ-Sales-2025-Q2.csv` is really 2024-Q2, so April to June 2025 is missing until the mirror is fixed).
-- Bulk batches (10+ deals at one price in one district within 7 days, such as housing programme handovers) stay in
-  deal counts but only one of them counts toward prices. A zero-width price range lowers confidence.
+- Bulk batches (10+ deals at the same price and area in one district within 7 days of the first, such as housing
+  programme handovers) stay in deal counts but only one of them counts toward prices.
+- REGA files: rows whose quarter is not the one in the file name are dropped (Hail-3rd-Q-2025.csv holds Q2 rows), a
+  file that mostly repeats an earlier one is skipped, and a city quarter with under 60% of the deeds of the quarters
+  next to it is treated as incomplete and left out (the 2025-Q3 district files today). Land cells with an average
+  parcel over 5,000 m² (raw tracts) are left out of land prices. Registry confidence is capped at medium when the
+  window ended over 12 months ago and at low over 24. A zero-width price range lowers confidence.
 - MOJ coverage per city (deals a quarter, last 12 months against the 12 before) caps confidence: under 50% at low,
   under 75% at medium. Riyadh is at about 29% after the move to the Real Estate Registry.
 - Windows and the data date come from the latest deal, and confidence falls as the data ages.

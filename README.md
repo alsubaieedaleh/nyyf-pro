@@ -42,3 +42,6 @@ OLD_NYYF=<old nyyf repo> data/pipelines/build_all.sh
 `build_rega_rent.py` (rents), then `build_riyadh_offers.py` (old Riyadh offers) and `build_plans.py`
 (plan prices). Output goes to `apps/web/public/data/`. `build_base.py --out <dir>` then exports the
 clean base tables (deals, districts, plans, rents, offers) as CSV.
+`build_final.py --base <dir> --out <dir>/final` (needs pandas and openpyxl) turns those into the final
+dataset: one price index row per plan (مخطط) and district with range, confidence and sources, as CSV, Excel
+and GeoJSON. The flow and how future sources plug in: [`docs/11-data-pipeline.md`](docs/11-data-pipeline.md).

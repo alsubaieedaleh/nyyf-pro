@@ -202,6 +202,36 @@ a.brand {
   max-width: 720px;
   padding-bottom: 4px;
 }
+.asof-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(20, 30, 30, 0.12);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.asof-pill i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1f9e8f;
+}
+.asof-pill.warn {
+  background: #fff6e5;
+  color: #7a5200;
+}
+.asof-pill.warn i {
+  background: #e0a030;
+}
 .cities::-webkit-scrollbar {
   display: none;
 }

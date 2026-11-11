@@ -61,6 +61,12 @@ pnpm --filter @nyyf/heatmap build    # static site in apps/heatmap/dist
    emails the owner, and the live data stays as it was. `force` on a manual run publishes anyway.
 4. Commits `apps/heatmap/public/data` only when the numbers changed, then calls the deploy workflow.
 
+**Fresher data (not wired in yet).** The mirror can lag the portal. `data/pipelines/fetch_open_data.py` pulls MOJ
+sales and REGA sales and rental indicators straight from open.data.gov.sa into a tree in the mirror's layout (the
+mirror fills any gap), with the same quarter, duplicate and completeness checks, and writes `fetch_report.json`.
+The portal only answers Saudi IPs, so it must run on a machine there (cron or a self-hosted runner); then point
+`MOJ_REPO` at its output. `--check` tests whether the portal answers from where it runs.
+
 `.github/workflows/heatmap-deploy.yml` builds the site on every change (and checks it on pull requests), then
 opens every page and every map mode and type in a headless browser (`scripts/smoke.cjs`) and fails on any script
 or map error.

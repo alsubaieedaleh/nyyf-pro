@@ -4,8 +4,9 @@ Reads price_index.geojson and rents_wide.csv from build_final.py, and sales_by_t
 market_quarterly.csv from build_rega_sales.py, and writes the files the public site loads:
 
   districts.geojson  one simplified polygon per district with, per property type, the sale price per m²
-                     (land, villa, apartment; REGA registry deeds), the rent per m² (apartment, villa,
-                     floor; REGA Ejar contracts), and the all-residential MOJ price with its range
+                     (land, villa, apartment; REGA registry deeds), the yearly rent per m² and per unit
+                     (apartment, studio, villa, floor; REGA Ejar contracts), and the all-residential MOJ
+                     price with its range
   meta.json          data dates, per-city colour breaks for every metric, bounds, coverage, sources
   market.json        home page stats: per city and type, quarterly deals and price per m², rents,
                      most expensive and most active districts
@@ -53,7 +54,15 @@ METRICS = {
     "rent_apartment": ("rent", "apartment"),
     "rent_villa": ("rent", "villa"),
     "rent_floor": ("rent", "floor"),
+    "rent_studio": ("rent", "studio"),
+    # Average annual rent per contract (per unit; unit sizes vary), the number brokers and tenants quote.
+    "rent_apartment_year": ("rent", "apartment"),
+    "rent_villa_year": ("rent", "villa"),
+    "rent_floor_year": ("rent", "floor"),
+    "rent_studio_year": ("rent", "studio"),
 }
+RENT_TYPES = ("apartment", "villa", "floor", "studio")
+WEB_META = Path(__file__).resolve().parents[2] / "apps" / "web" / "public" / "data" / "market-meta.json"
 RENT_CONF = [(50, "high"), (15, "medium"), (5, "low")]
 SALE_TYPES = ("land", "villa", "apartment", "duplex", "floor")
 
@@ -123,19 +132,37 @@ def reason_ar(basis, deals):
     return "صفقات قليلة جدًا لتقدير سعر موثوق"
 
 
+NICE_STEPS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000)
+
+
 def nice_breaks(values):
-    """Quintile breaks of a city's prices, rounded so the legend reads cleanly."""
+    """Quintile breaks of a city's values, rounded so the legend reads cleanly.
+
+    The rounding step comes from the city's own spread (about a tenth of the gap between the first and last
+    quintile), so rents of 100 to 700 SAR/m2 round to 10 or 25, not to 250. Breaks are strictly increasing
+    and every one of the five colour classes holds at least one district; when rounding would empty a
+    class, a finer step is used."""
     if len(values) < 5:
         return []
     qs = statistics.quantiles(values, n=5)
-    step = 250 if qs[-1] < 8000 else 500
-    out = []
-    for q in qs:
-        b = max(step, round(q / step) * step)
-        if out and b <= out[-1]:
-            b = out[-1] + step
-        out.append(b)
-    return out
+    target = max((qs[-1] - qs[0]) / 10, 1)
+    start = max([i for i, st in enumerate(NICE_STEPS) if st <= target], default=0)
+    for step in reversed(NICE_STEPS[:start + 1]):
+        out = []
+        for q in qs:
+            b = max(step, round(q / step) * step)
+            if out and b <= out[-1]:
+                b = out[-1] + step
+            out.append(b)
+        edges = [float("-inf")] + out + [float("inf")]
+        if all(any(lo <= v < hi for v in values) for lo, hi in zip(edges, edges[1:])):
+            return out
+    return [round(q) for q in qs]
+
+
+def rent_window(quarters):
+    """"2025-Q2..2026-Q1" from the rent quarters build_rega_rent.py used, or None."""
+    return f"{min(quarters)}..{max(quarters)}" if quarters else None
 
 
 def read_csv(path):
@@ -156,7 +183,7 @@ def type_fields(did, sales, rents):
         out[f"sale_{t}_conf"] = (r["confidence"] if r and ppm2 is not None else "none")
         out[f"sale_{t}_chg"] = num(r["change"], 3) if r and ppm2 is not None else None
     rr = rents.get(did, {})
-    for t in ("apartment", "villa", "floor"):
+    for t in RENT_TYPES:
         m2 = num(rr.get(f"rent_{t}_m2_year"))
         n = num(rr.get(f"rent_{t}_contracts")) or 0
         conf = next((c for k, c in RENT_CONF if n >= k), "none") if m2 is not None else "none"
@@ -165,6 +192,37 @@ def type_fields(did, sales, rents):
         out[f"rent_{t}_conf"] = conf
         out[f"rent_{t}_year"] = num(rr.get(f"rent_{t}_year")) if conf != "none" else None
     return out
+
+
+RENT_BAND = 3  # a district rent per m2 outside a third to three times the city median for its type is hidden
+# Ports and airport grounds have no housing; their "rents" are staff or corporate leases. Districts merely named
+# after an airport or an old industrial area (Madinah's حي المطار, Riyadh's حي الصناعية) do have housing, at
+# normal rents, so they stay and only the median band applies to them.
+NON_RESIDENTIAL = ("ميناء", "مطار الملك")
+
+
+def clean_rents(by_city):
+    """Hide rent cells that are not housing.
+
+    REGA's averages carry some corporate leases filed as a studio or apartment (a port district at 140,000
+    SAR a year for a "studio"). A cell more than RENT_BAND times off its city's median per m2 for that type is
+    hidden, and port and airport grounds get no rents at all."""
+    hidden = defaultdict(int)
+    for slug, rows in by_city.items():
+        for t in RENT_TYPES:
+            vals = [p[f"rent_{t}"] for p, _ in rows if p[f"rent_{t}"] is not None]
+            if len(vals) < 5:
+                continue
+            med = statistics.median(vals)
+            for p, _ in rows:
+                v = p[f"rent_{t}"]
+                odd = v is not None and not med / RENT_BAND <= v <= med * RENT_BAND
+                if odd or (v is not None and any(w in p["name_ar"] for w in NON_RESIDENTIAL)):
+                    p[f"rent_{t}"] = p[f"rent_{t}_year"] = None
+                    p[f"rent_{t}_conf"] = "none"
+                    hidden[slug] += 1
+    if hidden:
+        print("rent cells hidden (off the city median or not housing): " + ", ".join(f"{k} {v}" for k, v in hidden.items()))
 
 
 def build(final_dir, base_dir):
@@ -219,6 +277,8 @@ def build(final_dir, base_dir):
                          "geometry": round_coords(mapping(geom))})
         by_city[p["city"]].append((props, geom))
 
+    clean_rents(by_city)
+
     # Publish a city only when enough districts get a confident (high or medium) sale price for at least one
     # property type: the sale map by type is the main view, so a city with rents only would open empty.
     def confident(props):
@@ -226,6 +286,7 @@ def build(final_dir, base_dir):
 
     # ... and only when most of its registry deeds match a district polygon (otherwise the map is missing the
     # districts where most sales happen). The match rate is shown per city.
+    web_meta = json.loads(WEB_META.read_text(encoding="utf-8")) if WEB_META.exists() else {}
     cov_path = base_dir / "rega_coverage.json"
     coverage = json.loads(cov_path.read_text(encoding="utf-8")) if cov_path.exists() else {}
     skipped = {}
@@ -263,6 +324,7 @@ def build(final_dir, base_dir):
             "breaks": nice_breaks(prices),
             "sale_window": windows.get(slug),
             "match": coverage.get(slug, {}).get("rega_match"),
+            "rent_window": rent_window(web_meta.get(slug, {}).get("rent_quarters")),
             "metrics": {
                 k: {
                     "breaks": nice_breaks([r[k] for r, _ in rows if r[k] is not None]),
@@ -326,7 +388,10 @@ def build_market(base_dir, by_city, cities):
                 "deals_12m": sum(r["deals_12m"] for r in rows),
                 "value_12m": sum(num(r.get("value_12m")) or 0 for r in rows),
             },
-            "rent": {t: c["metrics"][f"rent_{t}"]["median"] for t in ("apartment", "villa", "floor")},
+            "rent": {t: c["metrics"][f"rent_{t}"]["median"] for t in RENT_TYPES},
+            "rent_year": {t: c["metrics"][f"rent_{t}_year"]["median"] for t in RENT_TYPES},
+            "rent_window": c["rent_window"],
+            "sale_window": c["sale_window"],
             "sale": {t: c["metrics"][f"sale_{t}"]["median"] for t in ("land", "villa", "apartment")},
             "top_price": {t: top(f"sale_{t}", f"sale_{t}_n") for t in ("land", "villa", "apartment")},
             "top_active": {t: top(f"sale_{t}", f"sale_{t}_n", by="n") for t in ("land", "villa", "apartment")},

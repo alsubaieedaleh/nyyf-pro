@@ -12,8 +12,10 @@ import { $, analytics, esc, getLocale, saveLocale, setDocLocale, toast } from ".
 
 type Conf = "high" | "medium" | "low" | "none";
 type SaleType = "land" | "villa" | "apartment";
-type RentType = "apartment" | "villa" | "floor";
-type MetricKey = `sale_${SaleType}` | `rent_${RentType}`;
+type RentType = "apartment" | "villa" | "floor" | "studio";
+/** Rent comes per m² a year (`rent_x`) or per unit a year (`rent_x_year`, the average contract). */
+type RentUnit = "unit" | "m2";
+type MetricKey = `sale_${SaleType}` | `rent_${RentType}` | `rent_${RentType}_year`;
 
 interface District {
   id: string;
@@ -36,6 +38,7 @@ interface City {
   bounds: [number, number, number, number];
   districts: number;
   sale_window: string | null;
+  rent_window?: string | null;
   match?: number | null;
   metrics: Record<MetricKey, { breaks: number[]; priced: number; median: number | null }>;
 }
@@ -57,7 +60,7 @@ const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreem
 
 const TYPES: { sale: SaleType[]; rent: RentType[] } = {
   sale: ["land", "villa", "apartment"],
-  rent: ["apartment", "villa", "floor"],
+  rent: ["apartment", "studio", "villa", "floor"],
 };
 
 // Sale: teal (low) through sand to coral (high). Rent: a blue-violet ramp so the two maps never get confused.
@@ -87,6 +90,7 @@ let type: SaleType | RentType = (() => {
   const t = params.get("type") as SaleType | RentType | null;
   return t && (TYPES[mode] as string[]).includes(t) ? t : TYPES[mode][0];
 })();
+let rentUnit: RentUnit = params.get("unit") === "m2" ? "m2" : "unit";
 let meta: Meta;
 let features: Feature[] = [];
 let byId = new Map<string, Feature>();
@@ -98,8 +102,12 @@ let textFont: string[] | null = null;
 let map: maplibregl.Map;
 
 const t = () => STRINGS[locale];
-const metric = (): MetricKey => `${mode}_${type}` as MetricKey;
-const unit = (m: Mode = mode) => (m === "sale" ? t().sar_m2 : t().sar_m2_year);
+const metricOf = (m: Mode, ty: string): MetricKey =>
+  (m === "rent" && rentUnit === "unit" ? `rent_${ty}_year` : `${m}_${ty}`) as MetricKey;
+const metric = (): MetricKey => metricOf(mode, type);
+/** The per-m² key behind a metric: deal counts and confidence are stored once per type. */
+const baseKey = (key: MetricKey) => key.replace(/_year$/, "");
+const unit = (m: Mode = mode) => (m === "sale" ? t().sar_m2 : rentUnit === "unit" ? t().sar_unit_year : t().sar_m2_year);
 
 // ---------- Helpers ----------
 
@@ -118,7 +126,7 @@ function val(d: District, key: MetricKey = metric()) {
 }
 
 function conf(d: District, key: MetricKey = metric()): Conf {
-  return val(d, key) == null ? "none" : ((d[`${key}_conf`] as Conf) ?? "none");
+  return val(d, key) == null ? "none" : ((d[`${baseKey(key)}_conf`] as Conf) ?? "none");
 }
 
 function colorFor(d: District, key: MetricKey = metric()) {
@@ -189,8 +197,15 @@ function fillColor() {
   const ramp = RAMPS[mode];
   const match: unknown[] = ["match", ["get", "city"]];
   for (const c of meta.cities) {
+    const breaks = c.metrics[key]?.breaks ?? [];
+    // A city with no breaks for this metric (no priced districts) gets the no-price colour: a "step" with no
+    // stops is an invalid expression and MapLibre would drop the whole layer, blanking every city.
+    if (!breaks.length) {
+      match.push(c.slug, NO_PRICE);
+      continue;
+    }
     const step: unknown[] = ["step", ["to-number", ["get", key]], ramp[0]];
-    (c.metrics[key]?.breaks ?? []).forEach((b, i) => step.push(b, ramp[i + 1]));
+    breaks.forEach((b, i) => step.push(b, ramp[i + 1]));
     match.push(c.slug, step);
   }
   match.push(NO_PRICE);
@@ -203,7 +218,7 @@ function fillOpacity() {
     "case",
     ["==", ["get", key], null],
     CONF_OPACITY.none,
-    ["match", ["get", `${key}_conf`], "high", CONF_OPACITY.high, "medium", CONF_OPACITY.medium, CONF_OPACITY.low],
+    ["match", ["get", `${baseKey(key)}_conf`], "high", CONF_OPACITY.high, "medium", CONF_OPACITY.medium, CONF_OPACITY.low],
   ];
   const hovered = ["boolean", ["feature-state", "hover"], false];
   if (!selectedId) return expr(["case", hovered, 0.9, base]);
@@ -328,7 +343,7 @@ function flyToCity(slug: string, animate = true) {
 }
 
 function writeUrl() {
-  const q = `?mode=${mode}&type=${type}`;
+  const q = `?mode=${mode}&type=${type}${mode === "rent" && rentUnit === "m2" ? "&unit=m2" : ""}`;
   const h = selectedId ? `#${activeCity}/${selectedId}` : `#${activeCity}`;
   if (location.search !== q || location.hash !== h) history.replaceState(null, "", `${location.pathname}${q}${h}`);
 }
@@ -356,11 +371,32 @@ function renderCities() {
     .join("");
 }
 
+function title(m: Mode = mode) {
+  const s = t();
+  return m === "sale" ? s.metricTitle.sale : s.rentTitle[rentUnit];
+}
+
+/** The rent quarters behind a city's rents; cities share the REGA release, so fall back to another city's. */
+function rentWindow(c?: City) {
+  return c?.rent_window ?? meta.cities.find((x) => x.rent_window)?.rent_window ?? null;
+}
+
+/** Months from the end of a "2024-Q3..2025-Q2" window to today. */
+function monthsOld(window?: string | null) {
+  const q = window?.split("..").pop();
+  if (!q) return 0;
+  const end = Date.UTC(Number(q.slice(0, 4)), Number(q.slice(-1)) * 3, 1);
+  return Math.floor((Date.now() - end) / (30.4 * 864e5));
+}
+
 function asOfText(c?: City) {
   const s = t();
   if (mode === "sale") return `${s.asOf} ${fmtWindow(c?.sale_window, locale).split(" – ")[1] ?? ""}`;
-  return `${s.asOf} ${fmtDate(meta.data_as_of, locale)}`;
+  const rw = rentWindow(c);
+  return rw ? `${s.periodRent} ${fmtWindow(rw, locale)}` : `${s.asOf} ${fmtDate(meta.data_as_of, locale)}`;
 }
+
+let legendObserver: ResizeObserver | null = null;
 
 function renderLegend() {
   const c = cityBySlug.get(activeCity);
@@ -369,7 +405,14 @@ function renderLegend() {
   const m = c.metrics[metric()];
   const labels = (m?.breaks ?? []).map((x) => fmtShort(x, locale));
   $("legend").innerHTML = `
-    <div class="legend-title">${s.metricTitle[mode]} · ${typeLabel(mode, type)} · ${esc(cityName(c.slug))} <span class="unit">${unit()}</span></div>
+    <div class="legend-title">${title()} · ${typeLabel(mode, type)} · ${esc(cityName(c.slug))} <span class="unit">${mode === "rent" && rentUnit === "unit" ? s.sar : unit()}</span></div>
+    ${
+      mode === "rent"
+        ? `<div class="unit-switch" role="group">${(["unit", "m2"] as RentUnit[])
+            .map((u) => `<button class="${u === rentUnit ? "on" : ""}" data-unit="${u}" aria-pressed="${u === rentUnit}">${s.rentUnit[u]}</button>`)
+            .join("")}</div>`
+        : ""
+    }
     <div class="ramp">${RAMPS[mode].map((col) => `<span style="background:${col}"></span>`).join("")}</div>
     <div class="ticks">${labels.map((l) => `<span>${l}</span>`).join("")}</div>
     <div class="legend-foot">
@@ -378,9 +421,15 @@ function renderLegend() {
     </div>
     <div class="legend-foot"><span class="muted">${esc(s.priced(m?.priced ?? 0, c.districts))}</span></div>
     ${mode === "sale" && c.match != null && c.match < 0.85 ? `<div class="legend-foot"><span class="muted">${esc(s.matchNote(fmtPercent(c.match, locale).replace(/^[+\u200e]+/, "")))}</span></div>` : ""}
+    ${mode === "rent" && rentUnit === "unit" ? `<div class="legend-foot"><span class="muted">${s.unitNote}</span></div>` : ""}
+    ${mode === "rent" && c.slug === "riyadh" ? `<div class="legend-note">${s.riyadhFreeze}</div>` : ""}
+    ${mode === "sale" && monthsOld(c.sale_window) > 12 ? `<div class="legend-note warn">${s.saleOld(fmtNumber(monthsOld(c.sale_window), locale))}</div>` : ""}
     <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
-  // The zoom buttons sit just above the legend, whose height changes with its notes.
-  document.documentElement.style.setProperty("--legend-h", `${$("legend").offsetHeight}px`);
+  // The zoom buttons sit just above the legend, whose height changes with its notes (and with web fonts).
+  legendObserver ??= new ResizeObserver(() =>
+    document.documentElement.style.setProperty("--legend-h", `${$("legend").offsetHeight}px`),
+  );
+  legendObserver.observe($("legend"));
 }
 
 function confBadge(c: Conf) {
@@ -389,9 +438,9 @@ function confBadge(c: Conf) {
 
 function reason(d: District, key: MetricKey) {
   const s = t();
-  const n = Number(d[`${key}_n`] ?? 0);
+  const n = Number(d[`${baseKey(key)}_n`] ?? 0);
   if (key.startsWith("sale")) return s.reasonSale(n, fmtWindow(cityBySlug.get(d.city)?.sale_window, locale));
-  return s.reasonRent(n);
+  return s.reasonRent(n, fmtWindow(rentWindow(cityBySlug.get(d.city)), locale));
 }
 
 function renderSheet(d: District) {
@@ -405,17 +454,21 @@ function renderSheet(d: District) {
     stats.push(
       `<div class="stat"><div class="k">${s.change}</div><div class="v ${chg > 0 ? "up" : chg < 0 ? "down" : ""}">${fmtPercent(chg, locale)}</div><div class="k2">${s.changeNote}</div></div>`,
     );
-  if (mode === "rent" && v != null && d[`${key}_year`] != null)
-    stats.push(
-      `<div class="stat"><div class="k">${s.yearlyRent} · ${t().typeOne[type as keyof typeof s.typeOne]}</div><div class="v">${fmtNumber(d[`${key}_year`] as number, locale)} <small>${s.sar}</small></div></div>`,
-    );
+  if (mode === "rent" && v != null) {
+    // The other rent unit beside the one on the map.
+    const other = rentUnit === "unit" ? (d[`rent_${type}`] as number | null) : (d[`rent_${type}_year`] as number | null);
+    if (other != null)
+      stats.push(
+        `<div class="stat"><div class="k">${rentUnit === "unit" ? s.rentTitle.m2 : `${s.yearlyRent} · ${s.typeOne[type as keyof typeof s.typeOne]}`}</div><div class="v">${fmtNumber(other, locale)} <small>${rentUnit === "unit" ? s.sar_m2_year : s.sar}</small></div></div>`,
+      );
+  }
 
   // Every type in this district, tappable to switch the map.
   const rows = (["sale", "rent"] as Mode[])
     .map((m) => {
       const cells = (TYPES[m] as string[])
         .map((ty) => {
-          const k = `${m}_${ty}` as MetricKey;
+          const k = metricOf(m, ty);
           const x = val(d, k);
           const on = k === key ? " on" : "";
           return `<button class="cell${on}" data-metric="${m}:${ty}"><span class="ct">${typeLabel(m, ty)}</span><span class="cv">${
@@ -433,7 +486,7 @@ function renderSheet(d: District) {
       : "";
 
   $("sheet-body").innerHTML = `
-    <div class="eyebrow">${esc(cityName(d.city))} · ${s.metricTitle[mode]} · ${typeLabel(mode, type)}</div>
+    <div class="eyebrow">${esc(cityName(d.city))} · ${title()} · ${typeLabel(mode, type)}</div>
     <h2>${esc(name(d))}</h2>
     ${
       v != null
@@ -571,6 +624,11 @@ function wireUi() {
   const about = $<HTMLDialogElement>("about");
   $("legend").addEventListener("click", (e) => {
     if ((e.target as HTMLElement).closest("#asof-btn")) about.showModal();
+    const u = (e.target as HTMLElement).closest<HTMLElement>("[data-unit]");
+    if (u && u.dataset.unit !== rentUnit) {
+      rentUnit = u.dataset.unit as RentUnit;
+      setMetric(mode, type);
+    }
   });
   about.addEventListener("click", (e) => {
     if (e.target === about) about.close();

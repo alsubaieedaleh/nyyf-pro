@@ -1,5 +1,5 @@
 import "./pages.css";
-import { STRINGS, fmtNumber, fmtPercent, fmtQuarter, fmtShort, type Locale } from "./i18n";
+import { STRINGS, fmtNumber, fmtPercent, fmtQuarter, fmtShort, fmtWindow, type Locale } from "./i18n";
 import { $, CITY_NAMES, CITY_SLUGS, analytics, esc, getLocale, renderLeadForm, renderReportForm, renderNav, saveLocale, setDocLocale } from "./common";
 
 type SaleType = "land" | "villa" | "apartment";
@@ -19,6 +19,9 @@ interface Top {
 interface CityMarket {
   types: Record<string, Point[]>;
   rent: Record<string, number | null>;
+  rent_year?: Record<string, number | null>;
+  rent_window?: string | null;
+  sale_window?: string | null;
   sale: Record<string, number | null>;
   top_price: Record<SaleType, Top[]>;
   top_active: Record<SaleType, Top[]>;
@@ -35,11 +38,14 @@ interface RDistrict {
   qoq: number | null;
   streak: number;
   n: number;
+  n_prev_year?: number;
   n_chg?: number | null;
 }
 interface RSegment {
   compared: number;
   excluded: number;
+  bulk?: number;
+  wide?: number;
   rising: number;
   falling: number;
   median_chg: number | null;
@@ -68,6 +74,8 @@ interface RCity {
   insights: RInsight[];
 }
 interface Report {
+  headline_min?: number;
+  headline_max?: number;
   cities: Record<string, RCity>;
 }
 
@@ -170,6 +178,9 @@ function reportSection(rc: RCity) {
     }</div>`;
   const streakTag = (d: RDistrict) =>
     `<small class="streak ${d.chg > 0 ? "up" : "down"}" title="${(d.chg > 0 ? s.streakUp : s.streakDown)(q(d.streak))}">${d.chg > 0 ? "▲" : "▼"} ${q(d.streak)}</small>`;
+  // Deeds (or deals) behind the move in this period; the same period a year earlier is in the tooltip.
+  const deeds = (d: RDistrict) =>
+    `<small class="n" title="${d.n_prev_year != null ? s.deedsPrev(fmtNumber(d.n_prev_year, locale)) : ""}">${fmtNumber(d.n, locale)} ${s.deeds}</small>`;
   const age = (q: string) => {
     const end = new Date(Date.UTC(Number(q.slice(0, 4)), Number(q.slice(-1)) * 3, 1));
     return Math.floor((Date.now() - end.getTime()) / (30.4 * 864e5));
@@ -187,12 +198,15 @@ function reportSection(rc: RCity) {
       </div>
       <ul class="insights">${insights}</ul>
       <div class="two four">
-        ${table(s.wkRisers, sg.risers, (d) => `${pct(d.chg)} ${streakTag(d)}`)}
-        ${table(s.wkStreaks, sg.streaks, (d) => `${streakTag(d)} ${pct(d.chg)}`)}
-        ${table(s.wkFallers, sg.fallers, (d) => `${pct(d.chg)} ${streakTag(d)}`)}
+        ${table(s.wkRisers, sg.risers, (d) => `${pct(d.chg)} ${streakTag(d)} ${deeds(d)}`)}
+        ${table(s.wkStreaks, sg.streaks, (d) => `${streakTag(d)} ${pct(d.chg)} ${deeds(d)}`)}
+        ${table(s.wkFallers, sg.fallers, (d) => `${pct(d.chg)} ${streakTag(d)} ${deeds(d)}`)}
         ${table(s.wkActive, sg.active, (d) => `${fmtNumber(d.n, locale)} <small>${s.deeds}</small> ${d.n_chg != null ? pct(d.n_chg) : ""}`)}
       </div>
       ${age(rc.quarter) > 6 ? `<p class="stale">${s.oldData(fmtNumber(age(rc.quarter), locale))}</p>` : ""}
+      <p class="fine muted">${s.headlineNote(fmtNumber(report?.headline_min ?? 50, locale), fmtPercent(report?.headline_max ?? 0.4, locale).replace(/^[+\u200e]+/, ""))} ${s.listDeeds}${
+        sg.wide ? ` ${s.wideNote(fmtNumber(sg.wide, locale))}` : ""
+      }${sg.bulk ? ` ${s.bulkNote(fmtNumber(sg.bulk, locale))}` : ""}</p>
       <p class="fine muted">${rc.source === "rega" ? s.srcRega : s.srcMoj}${sg.excluded ? ` ${s.excluded(fmtNumber(sg.excluded, locale))}` : ""}${
         rc.source === "moj" && rc.moj_coverage < 0.75 ? ` ${s.lowCoverage(fmtPercent(rc.moj_coverage, locale).replace(/^[+\u200e]+/, ""))}` : ""
       }</p>
@@ -234,16 +248,21 @@ function render() {
         <span class="k">${s.kPpm2} · ${s.types.sale[ty]}</span>
         <b>${l ? fmtNumber(l.last.ppm2!, locale) : "—"}</b> <span class="u">${s.sar_m2}</span>
         <span class="d">${
-          l?.yoy != null ? `<em class="${l.yoy > 0 ? "up" : "down"}">${fmtPercent(l.yoy, locale)}</em> ${s.vsLastYear}` : l ? fmtQuarter(l.last.q, locale) : ""
-        }</span></a>`;
+          l?.yoy != null ? `<em class="${l.yoy > 0 ? "up" : "down"}">${fmtPercent(l.yoy, locale)}</em> ${s.vsLastYear}` : ""
+        }</span>
+        ${l ? `<span class="period">${s.periodTo(fmtQuarter(l.last.q, locale))}</span>` : ""}</a>`;
     }).join("");
-    const rents = (["apartment", "villa", "floor"] as const)
-      .map(
-        (ty) => `<a class="kpi rent" href="./map.html?mode=rent&type=${ty}&city=${city}#${city}">
-        <span class="k">${s.kRent} · ${s.types.rent[ty]}</span>
-        <b>${c.rent[ty] != null ? fmtNumber(c.rent[ty]!, locale) : "—"}</b> <span class="u">${s.sar_m2}</span>
-        <span class="d">${s.medianDistrict}</span></a>`,
-      )
+    // Rent per unit a year (what tenants quote), with per m² beside it.
+    const rents = (["apartment", "studio", "villa", "floor"] as const)
+      .map((ty) => {
+        const y = c.rent_year?.[ty];
+        const m2 = c.rent[ty];
+        return `<a class="kpi rent" href="./map.html?mode=rent&type=${ty}&city=${city}#${city}">
+        <span class="k">${s.kRentUnit} · ${s.types.rent[ty]}</span>
+        <b>${y != null ? fmtNumber(y, locale) : m2 != null ? fmtNumber(m2, locale) : "—"}</b> <span class="u">${y != null ? s.sar_unit_year : s.sar_m2_year}</span>
+        <span class="d">${s.medianDistrict}${y != null && m2 != null ? ` · ${fmtNumber(m2, locale)} ${s.sar_m2_year}` : ""}</span>
+        ${c.rent_window ? `<span class="period">${fmtWindow(c.rent_window, locale)}</span>` : ""}</a>`;
+      })
       .join("");
     const list = (rows: Top[], unitLabel: (r: Top) => string) =>
       rows.length
@@ -261,7 +280,7 @@ function render() {
       </section>
       ${report?.cities[city] ? reportSection(report.cities[city]) : ""}
       <section class="kpis three">${kpis}</section>
-      <section class="kpis three">${rents}</section>
+      <section class="kpis four">${rents}</section>
       ${chart(c)}
       <section class="tops">
         <div class="seg-row">${SALE_TYPES.map((ty) => `<button class="chip${ty === topType ? " on" : ""}" data-top="${ty}">${s.types.sale[ty]}</button>`).join("")}</div>

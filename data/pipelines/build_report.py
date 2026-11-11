@@ -16,6 +16,10 @@ Each city uses the source that describes it best:
 
 A comparison needs MIN_DEEDS (registry) or MIN_DEALS (MOJ) on both sides; quarters missing from a source
 (for example MOJ 2025-Q2, see build_moj_market.py) are skipped rather than counted as a break in a streak.
+A window holding a bulk quarter (3x the district's usual volume) is not compared. The headline lists (top
+risers, fallers, streaks) only take districts with HEADLINE_MIN deeds on both sides and a move within
+HEADLINE_MAX; larger moves count in the totals and the median and are reported as "wide".
+The registry files are district totals (value and area), so a median per deed is not possible there.
 
 Usage:
   python build_report.py --deals <final>/deals_clean.csv.gz --rega <base>/sales_district_quarterly.csv \
@@ -48,6 +52,16 @@ MAX_GAP = 2  # quarters the registry may lag MOJ and still be the source
 MIN_COVERAGE = 0.75  # below this share of its usual volume, MOJ is not a fair sample of a city
 # Pick: the preferred source when it compares 15+ districts, else the one that compares the most (5+ needed).
 TOP = 8
+# The headline lists (top risers, fallers, streaks) are what a broker reads first, so they hold a stricter bar:
+# 50+ deeds or deals on both sides and a move within +-40%. Bigger moves still count in the totals and the
+# median, and are counted as "wide" with a note that they usually mean a different mix of what sold.
+HEADLINE_MIN = 50
+HEADLINE_MAX = 0.40
+# A quarter with 3x the district's usual volume (median of the 4 quarters before, 30+ deeds) is a bulk event:
+# a new plan opening, a government programme handover (such as the capped 1,500 SAR/m2 plots in north Riyadh),
+# or a developer batch. Its price is not the district's market price, so a window holding one is not compared.
+SPIKE_RATIO = 3
+SPIKE_MIN = 30
 SEGMENTS = {"rega": ["land", "villa", "apartment"], "moj": ["all"]}
 
 
@@ -121,21 +135,44 @@ def agg(qs: dict, end: int):
     return statistics.median(vals), len(vals)
 
 
+def count(cell) -> int:
+    return cell[2] if isinstance(cell, tuple) else len(cell)
+
+
+def spikes(qs: dict) -> set:
+    """Quarter numbers whose volume is SPIKE_RATIO times the median of the 4 quarters before."""
+    out = set()
+    for q, cell in qs.items():
+        n = qnum(q)
+        prior = [count(qs[qstr(m)]) for m in range(n - 4, n) if qstr(m) in qs]
+        if len(prior) >= 2 and count(cell) >= SPIKE_MIN and count(cell) >= SPIKE_RATIO * statistics.median(prior):
+            out.add(n)
+    return out
+
+
 def rank(series: dict, latest: str, have: set, min_n: int, names: dict):
     """series: district -> quarter -> cell. have: quarters the source has for this city."""
     L = qnum(latest)
-    rows, excluded = [], []
+    rows, excluded, bulk = [], [], []
     for did, qs in series.items():
+        spiked = spikes(qs)
+
         def yoy(n):
             a, b = agg(qs, n), agg(qs, n - 4)
             if not a or not b or a[1] < min_n or b[1] < min_n:
                 return None
+            window = set(range(n - WINDOW + 1, n + 1)) | set(range(n - 4 - WINDOW + 1, n - 4 + 1))
+            if window & spiked:
+                return "bulk"
             if max(a[1], b[1]) > MAX_COUNT_RATIO * min(a[1], b[1]):
                 return None  # deal count changed so much that the mix, not the price, moved
             return a[0] / b[0] - 1
 
         chg = yoy(L)
         if chg is None:
+            continue
+        if chg == "bulk":
+            bulk.append(did)
             continue
         if abs(chg) > MAX_MOVE:
             excluded.append(did)
@@ -146,7 +183,7 @@ def rank(series: dict, latest: str, have: set, min_n: int, names: dict):
                 n -= 1  # the source has no file for this quarter: skip, do not break
                 continue
             c = yoy(n)
-            if c is None or abs(c) > MAX_MOVE or (c > 0) != (chg > 0):
+            if c is None or c == "bulk" or abs(c) > MAX_MOVE or (c > 0) != (chg > 0):
                 break
             streak += 1
             n -= 1
@@ -175,17 +212,21 @@ def rank(series: dict, latest: str, have: set, min_n: int, names: dict):
                 "n": now[1], "n_chg": round(now[1] / before[1] - 1, 4) if before and before[1] else None,
                 "ppm2": int(round(now[0])),
             })
-    up = sorted([r for r in rows if r["chg"] > 0], key=lambda r: -r["chg"])
-    down = sorted([r for r in rows if r["chg"] < 0], key=lambda r: r["chg"])
+    head = [r for r in rows if min(r["n"], r["n_prev_year"]) >= HEADLINE_MIN and abs(r["chg"]) <= HEADLINE_MAX]
+    up = sorted([r for r in head if r["chg"] > 0], key=lambda r: -r["chg"])
+    down = sorted([r for r in head if r["chg"] < 0], key=lambda r: r["chg"])
     return {
         "compared": len(rows),
         "excluded": len(excluded),
-        "rising": len(up),
-        "falling": len(down),
+        "bulk": len(bulk),
+        "wide": sum(1 for r in rows if abs(r["chg"]) > HEADLINE_MAX),
+        "headline": len(head),
+        "rising": sum(1 for r in rows if r["chg"] > 0),
+        "falling": sum(1 for r in rows if r["chg"] < 0),
         "median_chg": round(statistics.median([r["chg"] for r in rows]), 4) if rows else None,
         "risers": up[:TOP],
         "fallers": down[:TOP],
-        "streaks": sorted([r for r in rows if r["chg"] > 0], key=lambda r: (-r["streak"], -r["chg"]))[:TOP],
+        "streaks": sorted([r for r in head if r["chg"] > 0], key=lambda r: (-r["streak"], -r["chg"]))[:TOP],
         "active": sorted(active, key=lambda r: -r["n"])[:TOP],
     }
 
@@ -273,6 +314,8 @@ def main():
         "max_move": MAX_MOVE,
         "min_deeds": MIN_DEEDS,
         "min_deals": MIN_DEALS,
+        "headline_min": HEADLINE_MIN,
+        "headline_max": HEADLINE_MAX,
         "cities": cities,
     }
     args.out.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

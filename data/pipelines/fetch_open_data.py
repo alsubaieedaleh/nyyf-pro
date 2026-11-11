@@ -9,16 +9,21 @@ unchanged (point MOJ_REPO at --out):
   <out>/rega/quarterlies/rental/<portal file name>  REGA rental indicators (Ejar)
 
 It starts from the mirror (hard links, no copies) and adds every portal file the mirror does not have. Where
-both have the same file, the portal copy wins when it differs, since the portal is the source.
+both hold the same quarter, the portal copy wins, since the portal is the source. MOJ files are matched by
+quarter; REGA files by the region and quarter in their rows, because REGA file names drift (AlJawf / AlJouf,
+1st-Q / Q1), so a portal file replaces the mirror's file for that region and quarter whatever either is called.
+Two portal files for one quarter in a run are an error: the first stays, nothing is overwritten silently.
 
 Each portal file goes through the same checks the build scripts apply, before it can enter the tree:
   * MOJ: at least half the deal dates must fall in the quarter the dataset names (the mirror once shipped
     2024-Q2 under the 2025-Q2 name). Otherwise the file is skipped.
+  * REGA: the rows' quarter must be the one the file name says (build_rega_sales.py drops other rows).
   * Duplicates: a file whose rows mostly (over 50%) repeat a file already in the tree is a re-published copy
     and is skipped.
   * Completeness: a file with under 60% of the rows of the median of the four latest files of its series is
-    flagged "partial". It still goes in: build_rega_sales.py and build_report.py leave incomplete quarters out
-    themselves, and they need the file to see it.
+    flagged "partial". A partial MOJ quarter stays out (the MOJ build has no partial-quarter rule); a partial
+    REGA file goes in, because build_rega_sales.py leaves incomplete quarters out itself and needs the file to
+    see it.
 Every decision is written to <out>/fetch_report.json and printed.
 
 Only the portal's public metadata API and its odp-public file storage are used (see the mirror's
@@ -42,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import io
 import json
 import os
@@ -194,16 +200,57 @@ def fingerprints(rows: list[list[str]]) -> set[tuple]:
     return {tuple(c.strip() for c in r) for r in rows}
 
 
-def read_local(path: Path) -> list[list[str]]:
-    with open(path, encoding="utf-8-sig", errors="replace", newline="") as fh:
+def read_local(path: Path) -> tuple[list[str], list[list[str]]]:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8-sig", errors="replace", newline="") as fh:
         reader = csv.reader(fh)
-        next(reader, None)
-        return [r for r in reader if any(c.strip() for c in r)]
+        header = [h.strip() for h in next(reader, [])]
+        return header, [r for r in reader if any(c.strip() for c in r)]
+
+
+class Tree:
+    """The files of one output folder, read once: rows, fingerprints and (for REGA) the region and quarter
+    their rows hold."""
+
+    def __init__(self, folder: Path):
+        self.folder = folder
+        self.cache: dict[str, dict] = {}
+
+    def files(self) -> list[Path]:
+        return sorted(f for f in self.folder.iterdir() if f.name.endswith((".csv", ".csv.gz")))
+
+    def info(self, f: Path) -> dict:
+        if f.name not in self.cache:
+            header, rows = read_local(f)
+            self.cache[f.name] = {"rows": len(rows), "prints": fingerprints(rows), "key": rega_key(header, rows)}
+        return self.cache[f.name]
+
+    def forget(self, name: str):
+        self.cache.pop(name, None)
+
+
+def rega_key(header: list[str], rows: list[list[str]]):
+    """(region, quarter) most rows of a REGA file belong to, from its own columns, or None.
+
+    File names drift (AlJawf / AlJouf, 1st-Q / Q1), so files are matched by what they hold."""
+    h = [c.strip() for c in header]
+    if not {"السنة", "الربع", "المنطقة"} <= set(h):
+        return None
+    iy, iq, ir = h.index("السنة"), h.index("الربع"), h.index("المنطقة")
+    counts: dict[tuple, int] = {}
+    for r in rows:
+        if len(r) > max(iy, iq, ir) and r[iq].strip() in "1234" and r[iq].strip():
+            k = (r[ir].strip(), f"{r[iy].strip()}-Q{r[iq].strip()}")
+            counts[k] = counts.get(k, 0) + 1
+    return max(counts, key=counts.get) if counts else None
 
 
 def series_key(name: str) -> str:
-    """Files of one series share a name without the quarter: "Rental-indicators-in-Riyadh-region"."""
-    return re.sub(r"[-_ ]*((1st|2nd|3rd|4th)[-_ ]?Q|Q[1-4])[-_ ]?(20\d\d).*$", "", name, flags=re.I).lower()
+    """Files of one series share a name without the quarter: "Rental-indicators-in-Riyadh-region", "MOJ-Sales"."""
+    name = re.sub(r"\.csv(\.gz)?$", "", name, flags=re.I)
+    name = re.sub(r"[-_ ]*((1st|2nd|3rd|4th)[-_ ]?Q|Q[1-4])[-_ ]?(20\d\d)$", "", name, flags=re.I)
+    name = re.sub(r"[-_ ]*20\d\d[-_ ]?Q[1-4]$", "", name, flags=re.I)
+    return name.lower()
 
 
 # ---------- Tree ----------
@@ -228,6 +275,8 @@ def seed_from_mirror(mirror: Path | None, out: Path):
 
 def fetch(portal: Portal, out: Path, mirror: Path | None) -> list[dict]:
     seed_from_mirror(mirror, out)
+    trees = {k: Tree(out / s["dir"]) for k, s in SERIES.items()}
+    written: dict[str, str] = {}  # file name -> dataset that wrote it in this run
     report = []
     for org_key, org_name in ORGS.items():
         try:
@@ -246,11 +295,17 @@ def fetch(portal: Portal, out: Path, mirror: Path | None) -> list[dict]:
                     report.append({"series": key, "dataset": title.strip(), "status": "error", "reason": str(e)})
                     continue
                 for res in resources:
-                    report.append(take(portal, out, key, s, title, res))
+                    report.append(take(portal, trees[key], key, title, res, written))
     return report
 
 
-def take(portal: Portal, out: Path, key: str, s: dict, title: str, res: dict) -> dict:
+def remove(tree: Tree, f: Path):
+    """Drop a file from the output tree (for a mirror file this removes the link, never the mirror's copy)."""
+    f.unlink()
+    tree.forget(f.name)
+
+
+def take(portal: Portal, tree: Tree, key: str, title: str, res: dict, written: dict) -> dict:
     portal_name = res["url"].split("/")[-1]
     claimed = quarter_of(portal_name) or quarter_of(title)
     entry = {"series": key, "dataset": title.strip(), "portal_file": portal_name, "quarter": claimed}
@@ -258,6 +313,9 @@ def take(portal: Portal, out: Path, key: str, s: dict, title: str, res: dict) ->
         return {**entry, "status": "skipped", "reason": "no quarter in the title or file name"}
     name = f"MOJ-Sales-{claimed}.csv" if key == "moj_sales" else safe_name(portal_name)
     entry["file"] = name
+    if name in written:
+        # Two resources for one quarter: keep the first and say so, never silently overwrite.
+        return {**entry, "status": "error", "reason": f"a second file for {name} in this run (first: {written[name]})"}
     try:
         body = portal.download(res["url"])
     except Exception as e:  # noqa: BLE001
@@ -272,35 +330,52 @@ def take(portal: Portal, out: Path, key: str, s: dict, title: str, res: dict) ->
         entry["in_quarter"] = round(share, 3)
         if share < MIN_IN_QUARTER:
             return {**entry, "status": "skipped", "reason": f"dates belong to {found}, not {claimed}"}
+        same_key = [f for f in tree.files() if f.name == name]
+    else:
+        rkey = rega_key(header, rows)
+        if not rkey:
+            return {**entry, "status": "skipped", "reason": "no year, quarter and region columns"}
+        entry["region"], entry["quarter"] = rkey
+        if rkey[1] != claimed:
+            # build_rega_sales drops rows whose quarter differs from the file name's, so such a file would
+            # only replace good data with nothing (the portal once filed Q2 rows as Hail-3rd-Q-2025).
+            return {**entry, "status": "skipped", "reason": f"rows are {rkey[1]}, the name says {claimed}"}
+        # The file in the tree that holds the same region and quarter, whatever its name.
+        same_key = [f for f in tree.files() if tree.info(f)["key"] == rkey]
 
-    folder = out / s["dir"]
-    target = folder / name
     prints = fingerprints(rows)
-    for other in folder.glob("*.csv"):
-        if other.name == name:
+    for other in tree.files():
+        if other in same_key:
             continue
-        overlap = len(prints & fingerprints(read_local(other))) / len(prints)
+        overlap = len(prints & tree.info(other)["prints"]) / len(prints)
         if overlap > MAX_OVERLAP:
             return {**entry, "status": "skipped", "reason": f"{overlap:.0%} of rows repeat {other.name}"}
 
-    same_series = sorted(
-        (f for f in folder.glob("*.csv") if f.name != name and series_key(f.name) == series_key(name)),
-        key=lambda f: quarter_of(f.name) or "",
-    )[-4:]
-    if same_series:
-        usual = statistics.median(len(read_local(f)) for f in same_series)
+    # Completeness against the latest files of the same series (MOJ: other quarters; REGA: same region).
+    if key == "moj_sales":
+        peers = [f for f in tree.files() if f.name != name and series_key(f.name) == series_key(name)]
+    else:
+        peers = [f for f in tree.files() if f not in same_key and (tree.info(f)["key"] or ("",))[0] == entry["region"]]
+    peers = sorted(peers, key=lambda f: (tree.info(f)["key"] or ("", quarter_of(f.name) or ""))[1])[-4:]
+    if peers:
+        usual = statistics.median(tree.info(f)["rows"] for f in peers)
         entry["completeness"] = round(len(rows) / usual, 2) if usual else None
         if usual and len(rows) < MIN_COMPLETE * usual:
             entry["flag"] = "partial"
+            if key == "moj_sales":
+                # The MOJ build has no partial-quarter rule, so a short MOJ quarter stays out until it fills.
+                return {**entry, "status": "skipped", "reason": f"partial: {len(rows)} rows, usually {int(usual)}"}
 
+    written[name] = title.strip()
+    if any(f.read_bytes() == body for f in same_key):
+        return {**entry, "status": "same as mirror"}
+    for f in same_key:
+        remove(tree, f)  # the portal file replaces whatever held this quarter (and region)
+    target = tree.folder / name
     if target.exists():
-        if target.read_bytes() == body:
-            return {**entry, "status": "same as mirror"}
-        target.unlink()  # a hard link to the mirror: replace the link, never the mirror's file
-        target.write_bytes(body)
-        return {**entry, "status": "replaced"}
+        remove(tree, target)
     target.write_bytes(body)
-    return {**entry, "status": "added"}
+    return {**entry, "status": "replaced" if same_key else "added", "replaces": [f.name for f in same_key] or None}
 
 
 def latest(out: Path) -> dict:

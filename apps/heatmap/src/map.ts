@@ -429,7 +429,7 @@ function renderLegend() {
   const old = mode === "sale" ? monthsOld(c.sale_window) : monthsOld(rentWindow(c));
   const pill = $("asof-pill");
   pill.className = `asof-pill${old > 12 ? " warn" : ""}`;
-  pill.innerHTML = `<i></i>${esc(mode === "sale" ? s.pillSale(fmtQuarter(c.sale_window?.split("..")[1] ?? "", locale)) : s.pillRent(fmtWindow(rentWindow(c), locale)))}${
+  pill.innerHTML = `<i></i>${esc(mode === "sale" ? (c.sale_window ? s.pillSale(fmtQuarter(c.sale_window.split("..")[1], locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)) : (rentWindow(c) ? s.pillRent(fmtWindow(rentWindow(c), locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)))}${
     old > 6 ? ` · ${esc(s.pillAge(fmtNumber(old, locale)))}` : ""
   }`;
   // The zoom buttons sit just above the legend, whose height changes with its notes (and with web fonts).

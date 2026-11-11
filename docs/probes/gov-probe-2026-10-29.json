@@ -1,0 +1,44 @@
+[
+  {
+    "root": "https://webgis.eamana.gov.sa/arcgisnew/rest/services",
+    "services": [],
+    "plan_layers": [],
+    "status": null,
+    "error": "<urlopen error Tunnel connection failed: 502 Bad Gateway>"
+  },
+  {
+    "root": "https://umaps.balady.gov.sa/server/rest/services",
+    "services": [],
+    "plan_layers": [],
+    "status": 406,
+    "error": null
+  },
+  {
+    "root": "https://umaps.balady.gov.sa/arcgis/rest/services",
+    "services": [],
+    "plan_layers": [],
+    "status": 406,
+    "error": null
+  },
+  {
+    "root": "https://umaps.momah.gov.sa/server/rest/services",
+    "services": [],
+    "plan_layers": [],
+    "status": 200,
+    "folders": {
+      "EnergyIntensity": "Token Required",
+      "Hosted": "Token Required",
+      "MOJ": "Token Required",
+      "umaps": "Token Required",
+      "UrbanBoundary": "Token Required",
+      "Utilities": "Token Required"
+    }
+  },
+  {
+    "root": "https://umaps.momah.gov.sa/arcgis/rest/services",
+    "services": [],
+    "plan_layers": [],
+    "status": 406,
+    "error": null
+  }
+]

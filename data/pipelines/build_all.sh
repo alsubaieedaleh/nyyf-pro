@@ -2,9 +2,10 @@
 # Rebuild all map data. Needs local clones of the two open data mirrors and the old nyyf repo:
 #   MOJ_REPO      https://github.com/civillizard/saudi-real-estate-data
 #   BOUNDARIES    https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts
-#   OLD_NYYF      the old nyyf repo (for the Riyadh land offers)
+#   OLD_NYYF      the old nyyf repo (for the Riyadh land offers). Optional: without it the
+#                 committed riyadh-offers.geojson is reused (the offers are frozen).
 set -euo pipefail
-: "${MOJ_REPO:?}" "${BOUNDARIES:?}" "${OLD_NYYF:?}"
+: "${MOJ_REPO:?}" "${BOUNDARIES:?}"
 cd "$(dirname "$0")/../.."
 rm -f apps/web/public/data/market-meta.json
 
@@ -23,7 +24,9 @@ dammam|الدمام|Dammam|EP
 khobar|الخبر|Al Khobar|EP
 CITIES
 
-python3 data/pipelines/build_riyadh_offers.py "$OLD_NYYF/Web/muqayyim/src/assets"
+if [ -n "${OLD_NYYF:-}" ]; then
+  python3 data/pipelines/build_riyadh_offers.py "$OLD_NYYF/Web/muqayyim/src/assets"
+fi
 
 # Plans need the district prices (and, for Riyadh, the offers) built above.
 for c in riyadh:الرياض jeddah:جدة makkah:"مكة المكرمة" madinah:"المدينة المنورة" dammam:الدمام khobar:الخبر; do

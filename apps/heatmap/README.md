@@ -65,7 +65,12 @@ pnpm --filter @nyyf/heatmap build    # static site in apps/heatmap/dist
 sales and REGA sales and rental indicators straight from open.data.gov.sa into a tree in the mirror's layout (the
 mirror fills any gap), with the same quarter, duplicate and completeness checks, and writes `fetch_report.json`.
 The portal only answers Saudi IPs, so it must run on a machine there (cron or a self-hosted runner); then point
-`MOJ_REPO` at its output. `--check` tests whether the portal answers from where it runs.
+`MOJ_REPO` at its output. `--check` tests whether the portal answers from where it runs. A MOJ or rental file
+with under 60% of its usual rows is held out as partial, and its ratio is printed; MOJ volume is falling as deals
+move to the registry, so if a complete quarter is held out, rerun with `--accept-partial`.
+
+Both REGA builds drop rows whose quarter differs from the one in the file name (some 1st-Q-2025 rental files also
+hold every 2026-Q1 row, which counted that quarter twice).
 
 `.github/workflows/heatmap-deploy.yml` builds the site on every change (and checks it on pull requests), then
 opens every page and every map mode and type in a headless browser (`scripts/smoke.cjs`) and fails on any script

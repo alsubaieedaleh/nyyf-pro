@@ -21,9 +21,11 @@ Each portal file goes through the same checks the build scripts apply, before it
   * Duplicates: a file whose rows mostly (over 50%) repeat a file already in the tree is a re-published copy
     and is skipped.
   * Completeness: a file with under 60% of the rows of the median of the four latest files of its series is
-    flagged "partial". A partial MOJ quarter stays out (the MOJ build has no partial-quarter rule); a partial
-    REGA file goes in, because build_rega_sales.py leaves incomplete quarters out itself and needs the file to
-    see it.
+    flagged "partial". A partial MOJ or rental quarter stays out (those builds have no partial-quarter rule, so
+    a short newest quarter would push a full one out of the four-quarter window); a partial REGA sales file goes
+    in, because build_rega_sales.py leaves incomplete quarters out itself and needs the file to see it. MOJ
+    volume is falling as deals move to the registry, so a complete quarter can look partial: check the printed
+    ratio and rerun with --accept-partial to take such files.
 Every decision is written to <out>/fetch_report.json and printed.
 
 Only the portal's public metadata API and its odp-public file storage are used (see the mirror's
@@ -273,7 +275,7 @@ def seed_from_mirror(mirror: Path | None, out: Path):
                 shutil.copy2(f, target)
 
 
-def fetch(portal: Portal, out: Path, mirror: Path | None) -> list[dict]:
+def fetch(portal: Portal, out: Path, mirror: Path | None, accept_partial: bool = False) -> list[dict]:
     seed_from_mirror(mirror, out)
     trees = {k: Tree(out / s["dir"]) for k, s in SERIES.items()}
     written: dict[str, str] = {}  # file name -> dataset that wrote it in this run
@@ -295,7 +297,7 @@ def fetch(portal: Portal, out: Path, mirror: Path | None) -> list[dict]:
                     report.append({"series": key, "dataset": title.strip(), "status": "error", "reason": str(e)})
                     continue
                 for res in resources:
-                    report.append(take(portal, trees[key], key, title, res, written))
+                    report.append(take(portal, trees[key], key, title, res, written, accept_partial))
     return report
 
 
@@ -305,7 +307,8 @@ def remove(tree: Tree, f: Path):
     tree.forget(f.name)
 
 
-def take(portal: Portal, tree: Tree, key: str, title: str, res: dict, written: dict) -> dict:
+def take(portal: Portal, tree: Tree, key: str, title: str, res: dict, written: dict,
+         accept_partial: bool = False) -> dict:
     portal_name = res["url"].split("/")[-1]
     claimed = quarter_of(portal_name) or quarter_of(title)
     entry = {"series": key, "dataset": title.strip(), "portal_file": portal_name, "quarter": claimed}
@@ -362,9 +365,11 @@ def take(portal: Portal, tree: Tree, key: str, title: str, res: dict, written: d
         entry["completeness"] = round(len(rows) / usual, 2) if usual else None
         if usual and len(rows) < MIN_COMPLETE * usual:
             entry["flag"] = "partial"
-            if key == "moj_sales":
-                # The MOJ build has no partial-quarter rule, so a short MOJ quarter stays out until it fills.
-                return {**entry, "status": "skipped", "reason": f"partial: {len(rows)} rows, usually {int(usual)}"}
+            if key in ("moj_sales", "rega_rental") and not accept_partial:
+                # The MOJ and rent builds have no partial-quarter rule, so a short quarter stays out until it
+                # fills (--accept-partial takes it anyway).
+                return {**entry, "status": "skipped",
+                        "reason": f"partial: {len(rows)} rows, {entry['completeness']:.2f} of the usual {int(usual)}"}
 
     written[name] = title.strip()
     if any(f.read_bytes() == body for f in same_key):
@@ -394,6 +399,8 @@ def main():
     ap.add_argument("--portal", default=PORTAL, help="portal base URL")
     ap.add_argument("--delay", type=float, default=2.0, help="seconds between requests")
     ap.add_argument("--check", action="store_true", help="only test that the portal answers")
+    ap.add_argument("--accept-partial", action="store_true",
+                    help="take MOJ and rental files flagged partial (check their completeness ratio first)")
     args = ap.parse_args()
 
     portal = Portal(args.portal, args.delay)
@@ -409,12 +416,14 @@ def main():
         ap.error("--out is required")
 
     before = latest(args.mirror) if args.mirror else {}
-    report = fetch(portal, args.out, args.mirror)
+    report = fetch(portal, args.out, args.mirror, args.accept_partial)
     after = latest(args.out)
     for r in report:
         if r.get("status") not in ("same as mirror",):
             print(f"{r.get('status', ''):15} {r.get('series', r.get('org', '')):12} {r.get('file') or r.get('portal_file') or ''}"
-                  f"{'  [' + r['flag'] + ']' if r.get('flag') else ''}  {r.get('reason', '')}")
+                  f"{'  [' + r['flag'] + ']' if r.get('flag') else ''}"
+                  f"{'  ratio ' + format(r['completeness'], '.2f') if r.get('completeness') is not None else ''}"
+                  f"  {r.get('reason', '')}")
     for k in SERIES:
         print(f"{k:12} mirror {before.get(k)}  ->  now {after.get(k)}")
     (args.out / "fetch_report.json").write_text(

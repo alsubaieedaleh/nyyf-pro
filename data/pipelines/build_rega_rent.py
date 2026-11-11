@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_moj_market import OUT, DistrictMatcher, same_city  # noqa: E402
+from build_rega_sales import file_quarter  # noqa: E402
 
 QUARTERS_USED = 4
 MIN_CONTRACTS = 5
@@ -56,7 +57,12 @@ def main():
     args = ap.parse_args()
 
     rows = []
-    for path in args.rent.glob(f"Rental-indicators-in-{args.region}*.csv"):
+    skipped = defaultdict(int)
+    for path in sorted(args.rent.glob(f"Rental-indicators-in-{args.region}*.csv")):
+        # Rows from a quarter other than the one the file name says are dropped, as in build_rega_sales.py:
+        # the Aseer, Jazan, Madinah and Najran 1st-Q-2025 files also hold every 2026-Q1 row, which would
+        # count 2026-Q1 twice next to the 1st-Q-2026 files.
+        claimed = file_quarter(path.name)
         with open(path, encoding="utf-8-sig") as fh:
             for row in csv.DictReader(fh):
                 # Header spelling changes between quarters ("متوسط الايجار  ر.س" vs "متوسط الايجار").
@@ -67,6 +73,9 @@ def main():
                 rent = number(row.get("متوسط الايجار"))
                 rent_m2 = number(row.get("متوسط الايجار لكل متر مربع"))
                 if not contracts or not rent:
+                    continue
+                if claimed and f"{int(row['السنة'])}-Q{int(row['الربع'])}" != claimed:
+                    skipped[path.name] += 1
                     continue
                 rows.append(
                     {
@@ -131,6 +140,8 @@ def main():
     total = sum(r["contracts"] for r in rows) or 1
     print(f"{args.region}: {int(total)} contracts in {meta[args.slug]['rent_quarters']}, "
           f"matched {1 - sum(unmatched.values()) / total:.1%}, districts with rent {len(rent_out)}")
+    for name, n in skipped.items():
+        print(f"  dropped {n} rows of another quarter from {name}")
     print("top unmatched:", sorted(unmatched.items(), key=lambda kv: -kv[1])[:15])
 
 

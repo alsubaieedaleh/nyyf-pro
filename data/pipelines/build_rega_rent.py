@@ -128,7 +128,7 @@ def main():
     meta[args.slug]["rent_quarters"] = [f"{y}-Q{q}" for y, q in quarters]
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    total = sum(r["contracts"] for r in rows)
+    total = sum(r["contracts"] for r in rows) or 1
     print(f"{args.region}: {int(total)} contracts in {meta[args.slug]['rent_quarters']}, "
           f"matched {1 - sum(unmatched.values()) / total:.1%}, districts with rent {len(rent_out)}")
     print("top unmatched:", sorted(unmatched.items(), key=lambda kv: -kv[1])[:15])

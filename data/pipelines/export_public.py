@@ -1,9 +1,14 @@
 """Export the public district price map data from the final dataset, behind quality gates.
 
-Reads price_index.geojson from build_final.py and writes the two files the public heat map loads:
+Reads price_index.geojson and rents_wide.csv from build_final.py, and sales_by_type.csv and
+market_quarterly.csv from build_rega_sales.py, and writes the files the public site loads:
 
-  districts.geojson  one simplified polygon per district with its price, range, confidence and rent
-  meta.json          data date, per-city colour breaks, centres, bounds and coverage, and sources
+  districts.geojson  one simplified polygon per district with, per property type, the sale price per m²
+                     (land, villa, apartment; REGA registry deeds), the rent per m² (apartment, villa,
+                     floor; REGA Ejar contracts), and the all-residential MOJ price with its range
+  meta.json          data dates, per-city colour breaks for every metric, bounds, coverage, sources
+  market.json        home page stats: per city and type, quarterly deals and price per m², rents,
+                     most expensive and most active districts
 
 Only district rows from open sources go out (MOJ deals, REGA rents, district polygons). Plans (مخططات)
 and the old offers stay private: the offers are not ours to republish.
@@ -18,27 +23,39 @@ exit code 1 and leaves the published files untouched when, for any city:
 Use --force to publish anyway (after a person has checked the change).
 
 Usage:
-  python data/pipelines/export_public.py --final <final dir> --out apps/heatmap/public/data [--force]
+  python data/pipelines/export_public.py --final <final dir> --base <base dir> \
+      --out apps/heatmap/public/data [--force]
 """
 
 import argparse
+import csv
 import json
 import statistics
 import sys
 from datetime import datetime, timezone
+from collections import defaultdict
 from pathlib import Path
 
 from shapely.geometry import mapping, shape
 
-CITIES = [
-    # slug, Arabic, English
-    ("riyadh", "الرياض", "Riyadh"),
-    ("jeddah", "جدة", "Jeddah"),
-    ("makkah", "مكة المكرمة", "Makkah"),
-    ("madinah", "المدينة المنورة", "Madinah"),
-    ("dammam", "الدمام", "Dammam"),
-    ("khobar", "الخبر", "Al Khobar"),
-]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cities import CITY_LIST  # noqa: E402
+
+CITIES = [(c["slug"], c["ar"], c["en"]) for c in CITY_LIST]
+MIN_CONFIDENT = 15  # districts with a high or medium confidence price needed to publish a city
+MIN_MATCH = 0.6  # share of a city's registry deeds that must match a district polygon
+
+# Map metrics: key -> (mode, type). Sale types come from REGA registry deeds, rents from Ejar contracts.
+METRICS = {
+    "sale_land": ("sale", "land"),
+    "sale_villa": ("sale", "villa"),
+    "sale_apartment": ("sale", "apartment"),
+    "rent_apartment": ("rent", "apartment"),
+    "rent_villa": ("rent", "villa"),
+    "rent_floor": ("rent", "floor"),
+}
+RENT_CONF = [(50, "high"), (15, "medium"), (5, "low")]
+SALE_TYPES = ("land", "villa", "apartment", "duplex", "floor")
 
 SOURCES = [
     {
@@ -52,6 +69,13 @@ SOURCES = [
         "id": "rega_rent",
         "ar": "الهيئة العامة للعقار: مؤشرات الإيجار (إيجار)",
         "en": "Real Estate General Authority (REGA): rental indicators (Ejar)",
+        "license": "KSA Open Data License",
+        "url": "https://open.data.gov.sa",
+    },
+    {
+        "id": "rega_sales",
+        "ar": "الهيئة العامة للعقار: مؤشرات صفقات البيع (السجل العقاري)",
+        "en": "Real Estate General Authority (REGA): sales transaction indicators (Real Estate Registry)",
         "license": "KSA Open Data License",
         "url": "https://open.data.gov.sa",
     },
@@ -114,7 +138,41 @@ def nice_breaks(values):
     return out
 
 
-def build(final_dir):
+def read_csv(path):
+    if not path.exists():
+        return []
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def type_fields(did, sales, rents):
+    """Per-type sale and rent fields for one district."""
+    out = {}
+    for t in ("land", "villa", "apartment"):
+        r = sales.get((did, t))
+        ppm2 = num(r["ppm2"]) if r else None
+        out[f"sale_{t}"] = ppm2
+        out[f"sale_{t}_n"] = num(r["deeds"]) if r else 0
+        out[f"sale_{t}_conf"] = (r["confidence"] if r and ppm2 is not None else "none")
+        out[f"sale_{t}_chg"] = num(r["change"], 3) if r and ppm2 is not None else None
+    rr = rents.get(did, {})
+    for t in ("apartment", "villa", "floor"):
+        m2 = num(rr.get(f"rent_{t}_m2_year"))
+        n = num(rr.get(f"rent_{t}_contracts")) or 0
+        conf = next((c for k, c in RENT_CONF if n >= k), "none") if m2 is not None else "none"
+        out[f"rent_{t}"] = m2 if conf != "none" else None
+        out[f"rent_{t}_n"] = n
+        out[f"rent_{t}_conf"] = conf
+        out[f"rent_{t}_year"] = num(rr.get(f"rent_{t}_year")) if conf != "none" else None
+    return out
+
+
+def build(final_dir, base_dir):
+    sales = {(r["district_id"], r["type"]): r for r in read_csv(base_dir / "sales_by_type.csv")}
+    rents = {r["district_id"]: r for r in read_csv(final_dir / "rents_wide.csv")}
+    windows = {}
+    for r in read_csv(base_dir / "sales_by_type.csv"):
+        windows[r["city"]] = r["window"]
     src = json.loads((final_dir / "price_index.geojson").read_text(encoding="utf-8"))
     features, by_city, problems = [], {c[0]: [] for c in CITIES}, []
     as_of = None
@@ -149,15 +207,41 @@ def build(final_dir):
             "reason_ar": reason_ar(p.get("price_basis"), deals_basis),
             "yoy": num(p.get("yoy_change"), 3) if ppm2 is not None else None,
             "deals_12m": num(p.get("deals_12m")) or 0,
+            "value_12m": num(p.get("value_12m_sar")) or 0,
             "last_deal": p.get("last_deal") or None,
             "rent_m2": num(p.get("rent_apartment_m2_year")),
             "rent_year": num(p.get("rent_apartment_year")),
             "lng": num(p.get("lng"), 5),
             "lat": num(p.get("lat"), 5),
+            **type_fields(str(p.get("district_id")), sales, rents),
         }
         features.append({"type": "Feature", "id": len(features), "properties": props,
                          "geometry": round_coords(mapping(geom))})
         by_city[p["city"]].append((props, geom))
+
+    # Publish a city only when enough districts get a confident (high or medium) sale price for at least one
+    # property type: the sale map by type is the main view, so a city with rents only would open empty.
+    def confident(props):
+        return any(props.get(f"{k}_conf") in ("high", "medium") for k, (mode, _) in METRICS.items() if mode == "sale")
+
+    # ... and only when most of its registry deeds match a district polygon (otherwise the map is missing the
+    # districts where most sales happen). The match rate is shown per city.
+    cov_path = base_dir / "rega_coverage.json"
+    coverage = json.loads(cov_path.read_text(encoding="utf-8")) if cov_path.exists() else {}
+    skipped = {}
+    for slug in by_city:
+        n = sum(1 for props, _ in by_city[slug] if confident(props))
+        match = coverage.get(slug, {}).get("rega_match", 0)
+        if by_city[slug] and (n < MIN_CONFIDENT or match < MIN_MATCH):
+            skipped[slug] = f"{n} confident, {match:.0%} matched"
+    if skipped:
+        print(f"not published (under {MIN_CONFIDENT} confident districts or {MIN_MATCH:.0%} of deeds matched): "
+              + "; ".join(f"{k} ({v})" for k, v in skipped.items()))
+        features = [f for f in features if f["properties"]["city"] not in skipped]
+        for i, f in enumerate(features):
+            f["id"] = i
+        for slug in skipped:
+            by_city[slug] = []
 
     cities = []
     for slug, ar, en in CITIES:
@@ -177,11 +261,24 @@ def build(final_dir):
             "high": sum(1 for r, _ in rows if r["conf"] == "high"),
             "median_ppm2": int(statistics.median(prices)) if prices else None,
             "breaks": nice_breaks(prices),
+            "sale_window": windows.get(slug),
+            "match": coverage.get(slug, {}).get("rega_match"),
+            "metrics": {
+                k: {
+                    "breaks": nice_breaks([r[k] for r, _ in rows if r[k] is not None]),
+                    "priced": sum(1 for r, _ in rows if r[k] is not None),
+                    "median": int(statistics.median([r[k] for r, _ in rows if r[k] is not None]))
+                    if any(r[k] is not None for r, _ in rows) else None,
+                }
+                for k in METRICS
+            },
         })
 
     meta = {
         "data_as_of": as_of,
         "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
+        "sale_as_of": max((w.split("..")[-1] for w in windows.values()), default=None),
+        "metrics": {k: {"mode": m, "type": t} for k, (m, t) in METRICS.items()},
         "cities": cities,
         "sources": SOURCES,
         "totals": {
@@ -190,7 +287,51 @@ def build(final_dir):
             "high": sum(c["high"] for c in cities),
         },
     }
-    return {"type": "FeatureCollection", "features": features}, meta, problems
+    market = build_market(base_dir, by_city, cities)
+    return {"type": "FeatureCollection", "features": features}, meta, market, problems
+
+
+def build_market(base_dir, by_city, cities):
+    """Home page stats per city: quarterly series per type, rents, top districts."""
+    q = defaultdict(list)
+    for r in read_csv(base_dir / "market_quarterly.csv"):
+        q[(r["city"], r["type"])].append(r)
+    out = {"cities": {}}
+    for c in cities:
+        slug = c["slug"]
+        rows = [r for r, _ in by_city[slug]]
+        types = {}
+        for t in SALE_TYPES:
+            series = sorted(q.get((slug, t), []), key=lambda r: r["quarter"])
+            pts = []
+            for r in series:
+                ppm2 = num(r["ppm2"])
+                prior = [p["ppm2"] for p in pts[-4:] if p["ppm2"]]
+                # A city average that jumps far from the last year is a data glitch (e.g. raw land
+                # deals in one quarter); keep the deal count but not the price.
+                if ppm2 and len(prior) >= 2 and not 0.5 <= ppm2 / statistics.median(prior) <= 2:
+                    ppm2 = None
+                pts.append({"q": r["quarter"], "deeds": num(r["deeds"]) or 0,
+                            "value": num(r["value"]) or 0, "ppm2": ppm2})
+            if pts:
+                types[t] = pts
+        def top(key, n_key, by="price", k=5):
+            cand = [r for r in rows if r.get(key) is not None and r.get(f"{key}_conf") in ("high", "medium")]
+            cand.sort(key=lambda r: -(r[key] if by == "price" else r[n_key]))
+            return [{"id": r["id"], "name_ar": r["name_ar"], "name_en": r["name_en"],
+                     "value": r[key], "n": r[n_key]} for r in cand[:k]]
+        out["cities"][slug] = {
+            "types": types,
+            "moj": {
+                "deals_12m": sum(r["deals_12m"] for r in rows),
+                "value_12m": sum(num(r.get("value_12m")) or 0 for r in rows),
+            },
+            "rent": {t: c["metrics"][f"rent_{t}"]["median"] for t in ("apartment", "villa", "floor")},
+            "sale": {t: c["metrics"][f"sale_{t}"]["median"] for t in ("land", "villa", "apartment")},
+            "top_price": {t: top(f"sale_{t}", f"sale_{t}_n") for t in ("land", "villa", "apartment")},
+            "top_active": {t: top(f"sale_{t}", f"sale_{t}_n", by="n") for t in ("land", "villa", "apartment")},
+        }
+    return out
 
 
 def gates(meta, previous, problems):
@@ -205,10 +346,19 @@ def gates(meta, previous, problems):
             continue
         if p["priced"] and c["priced"] < p["priced"] * (1 - MAX_PRICED_DROP):
             failed.append(f"{c['slug']}: priced districts fell from {p['priced']} to {c['priced']}")
-        if p.get("median_ppm2") and c.get("median_ppm2"):
+        # Medians of small cities swing with a handful of deals, so the move check needs 30+ priced districts.
+        if p.get("median_ppm2") and c.get("median_ppm2") and p["priced"] >= 30:
             move = c["median_ppm2"] / p["median_ppm2"] - 1
             if abs(move) > MAX_MEDIAN_MOVE:
                 failed.append(f"{c['slug']}: median moved {move:+.0%} ({p['median_ppm2']} to {c['median_ppm2']})")
+        for k, m in c.get("metrics", {}).items():
+            pm = p.get("metrics", {}).get(k)
+            if not pm:
+                continue
+            if pm["priced"] and m["priced"] < pm["priced"] * (1 - MAX_PRICED_DROP):
+                failed.append(f"{c['slug']} {k}: priced districts fell from {pm['priced']} to {m['priced']}")
+            if pm["priced"] >= 30 and pm.get("median") and m.get("median") and abs(m["median"] / pm["median"] - 1) > MAX_MEDIAN_MOVE:
+                failed.append(f"{c['slug']} {k}: median moved {m['median'] / pm['median'] - 1:+.0%}")
     for slug in prev:
         if slug not in {c["slug"] for c in meta["cities"]}:
             failed.append(f"{slug}: city missing")
@@ -218,11 +368,12 @@ def gates(meta, previous, problems):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--final", required=True, type=Path, help="folder with price_index.geojson")
+    ap.add_argument("--base", required=True, type=Path, help="folder with sales_by_type.csv, market_quarterly.csv")
     ap.add_argument("--out", required=True, type=Path, help="public data folder of the heat map")
     ap.add_argument("--force", action="store_true", help="publish even if a quality gate fails")
     args = ap.parse_args()
 
-    geo, meta, problems = build(args.final)
+    geo, meta, market, problems = build(args.final, args.base)
     meta_path = args.out / "meta.json"
     previous = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else None
 
@@ -242,9 +393,10 @@ def main():
     (args.out / "districts.geojson").write_text(
         json.dumps(geo, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    (args.out / "market.json").write_text(json.dumps(market, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     for c in meta["cities"]:
         print(f"{c['slug']:8} {c['priced']:4}/{c['districts']:<4} priced, {c['high']:4} high, "
-              f"median {c['median_ppm2']}, breaks {c['breaks']}")
+              f"median {c['median_ppm2']}; " + ", ".join(f"{k} {m['priced']}@{m['median']}" for k, m in c["metrics"].items()))
     size = (args.out / "districts.geojson").stat().st_size
     print(f"data as of {meta['data_as_of']}, districts.geojson {size / 1024:.0f} KB")
 

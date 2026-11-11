@@ -38,6 +38,7 @@ MAX_PPM2 = 100_000
 # Deals further than this from the district median (as a ratio) are dropped as outliers.
 MAX_RATIO_TO_DISTRICT_MEDIAN = 5
 MIN_DEALS_FOR_STATS = 5
+MIN_DEALS_FOR_YOY = 20  # year-on-year change needs this many priced deals in each year
 RECENT_DEALS_PER_DISTRICT = 40
 
 # MOJ spellings that differ from the National Address names (after normalise()).
@@ -52,6 +53,7 @@ ALIASES = {
     "اشبيليا": "اشبيليه",
     "مطار الملك خالد الدولي": "مطار الملك خالد",
     # REGA rental spellings
+    "الخبرالشماليه": "الخبر الشماليه",
     "غبيرا": "غبيره",
     "المعيزيله": "المعيزله",
     "العريجاء الاوسط": "العريجاء الوسطي",
@@ -105,8 +107,12 @@ class DistrictMatcher:
 
 def same_city(a: str, b: str) -> bool:
     """MOJ and REGA spell some cities differently from the National Address (جده vs جدة)."""
-    fold = lambda s: s.strip().replace("ة", "ه").replace("أ", "ا")
+    fold = lambda s: CITY_ALIASES.get(s.strip(), s.strip()).replace("ة", "ه").replace("أ", "ا").replace("إ", "ا")
     return fold(a) == fold(b)
+
+
+# REGA reports Al Hofuf and Al Mubarraz together as Al Ahsa; the National Address district map files them under Al Hofuf.
+CITY_ALIASES = {"الاحساء": "الهفوف", "الأحساء": "الهفوف", "مدينة المدينة المنورة": "المدينة المنورة"}
 
 
 def number(value: str):
@@ -127,8 +133,62 @@ def parse_date(value: str):
     return None
 
 
+BATCH_MIN = 10  # same price and area in one district within BATCH_DAYS of the first: a programme or developer handover
+BATCH_DAYS = 7
+SKIPPED_FILES: dict = {}  # file name -> reason, for the run summary
+
+
 def read_deals(moj_dir: Path, city: str):
-    """Yield normalised deals for one city from every quarterly file (two schemas over the years)."""
+    """Normalised deals for one city from every quarterly file, checked and with bulk batches marked.
+
+    * A file whose deal dates do not fall in the quarter its name says is skipped (the mirror once shipped
+      2024-Q2 under the 2025-Q2 name). The gap shows in the run log and in SKIPPED_FILES.
+    * Bulk batches (BATCH_MIN+ deals at the same price and area in one district within BATCH_DAYS) stay in the deal
+      counts, but only the first deal of a batch keeps a usable price: "batch_dup" marks the rest.
+    """
+    by_file = defaultdict(list)
+    for path, d in _read_rows(moj_dir, city):
+        by_file[path].append(d)
+    deals = []
+    for path, rows in by_file.items():
+        m = re.search(r"(20\d\d)-Q([1-4])", path.name)
+        if m and rows:
+            share = sum(1 for d in rows if quarter(d["date"]) == f"{m[1]}-Q{m[2]}") / len(rows)
+            if share < 0.5:
+                found = max(set(quarter(d["date"]) for d in rows), key=lambda q: sum(quarter(d["date"]) == q for d in rows))
+                SKIPPED_FILES[path.name] = f"dates belong to {found}, not {m[1]}-Q{m[2]}"
+                print(f"WARNING: skipped {path.name}: {SKIPPED_FILES[path.name]} ({share:.0%} in its quarter)")
+                continue
+        deals.extend(rows)
+    deals = list({d["ref"] or id(d): d for d in deals}.values())
+
+    # A batch is the same price AND the same area (to 1 m2) in one district, within BATCH_DAYS of the batch's
+    # first deal. Same price alone is not enough: round prices (100,000, 500,000) repeat all year.
+    groups = defaultdict(list)
+    for d in deals:
+        groups[(d["district"], round(d["price"]), round(d["area"]))].append(d)
+    marked = 0
+    for g in groups.values():
+        if len(g) < BATCH_MIN:
+            continue
+        g.sort(key=lambda d: d["date"])
+        i = 0
+        while i < len(g):
+            j = i
+            while j + 1 < len(g) and (g[j + 1]["date"] - g[i]["date"]).days <= BATCH_DAYS:
+                j += 1
+            if j - i + 1 >= BATCH_MIN:
+                for dup in g[i + 1:j + 1]:
+                    dup["batch_dup"] = True
+                marked += j - i
+            i = j + 1
+    if marked:
+        print(f"{city}: {marked} bulk-batch deals kept for counts, left out of prices")
+    return deals
+
+
+def _read_rows(moj_dir: Path, city: str):
+    """Yield (file, deal) for one city from every quarterly file (two schemas over the years)."""
     for path in sorted(moj_dir.glob("MOJ-Sales-20*.csv*")):
         opener = gzip.open if path.suffix == ".gz" else open
         with opener(path, "rt", encoding="utf-8-sig") as fh:
@@ -144,7 +204,7 @@ def read_deals(moj_dir: Path, city: str):
                 if not when or not price or not area:
                     continue
                 plan = (row.get("المخطط") or "").replace("مخطط/", "").strip()
-                yield {
+                yield path, {
                     "ref": (row.get("الرقم المرجعي للصفقة") or row.get("رقم مرجعي") or "").strip(),
                     "district": district.replace("حي/", "").strip(),
                     "date": when,
@@ -195,7 +255,7 @@ def main():
         if f is None:
             unmatched[d["district"]] += 1
             continue
-        d["ppm2"] = d["price"] / d["area"] if d["count"] == 1 else None
+        d["ppm2"] = d["price"] / d["area"] if d["count"] == 1 and not d.get("batch_dup") else None
         if d["ppm2"] is not None and not (
             MIN_AREA_M2 <= d["area"] <= MAX_AREA_M2 and MIN_PPM2 <= d["ppm2"] <= MAX_PPM2
         ):
@@ -215,7 +275,7 @@ def main():
         last12 = [d["ppm2"] for d in res if d["date"] >= window_start]
         prev12 = [d["ppm2"] for d in res if prev_start <= d["date"] < window_start]
         ppm2 = round(statistics.median(last12)) if len(last12) >= MIN_DEALS_FOR_STATS else None
-        prev = statistics.median(prev12) if len(prev12) >= MIN_DEALS_FOR_STATS else None
+        prev = statistics.median(prev12) if len(prev12) >= MIN_DEALS_FOR_YOY and len(last12) >= MIN_DEALS_FOR_YOY else None
 
         series = defaultdict(list)
         for d in res:

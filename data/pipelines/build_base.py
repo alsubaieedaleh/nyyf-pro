@@ -27,15 +27,9 @@ from shapely.geometry import shape
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_moj_market import OUT, DistrictMatcher, quarter, read_deals  # noqa: E402
 from build_plans import single_ppm2  # noqa: E402
+from cities import CITY_AR  # noqa: E402
 
-CITIES = {
-    "riyadh": "الرياض",
-    "jeddah": "جدة",
-    "makkah": "مكة المكرمة",
-    "madinah": "المدينة المنورة",
-    "dammam": "الدمام",
-    "khobar": "الخبر",
-}
+CITIES = CITY_AR
 
 
 def load(name):
@@ -60,7 +54,11 @@ def main():
 
     deal_rows, district_rows, plan_rows, rent_rows, features = [], [], [], [], []
     for slug, city in CITIES.items():
-        districts = load(f"{slug}-districts.geojson")["features"]
+        loaded = load(f"{slug}-districts.geojson")
+        if not loaded:
+            print(f"{slug}: no districts built, skipped")
+            continue
+        districts = loaded["features"]
         names = {f["properties"]["id"]: f["properties"] for f in districts}
         match = DistrictMatcher(districts)
 

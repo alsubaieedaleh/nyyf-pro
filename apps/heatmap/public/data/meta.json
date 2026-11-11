@@ -1,6 +1,33 @@
 {
  "data_as_of": "2026-03-31",
- "built_at": "2026-11-10T13:34Z",
+ "built_at": "2026-11-11T07:35Z",
+ "sale_as_of": "2025-Q3",
+ "metrics": {
+  "sale_land": {
+   "mode": "sale",
+   "type": "land"
+  },
+  "sale_villa": {
+   "mode": "sale",
+   "type": "villa"
+  },
+  "sale_apartment": {
+   "mode": "sale",
+   "type": "apartment"
+  },
+  "rent_apartment": {
+   "mode": "rent",
+   "type": "apartment"
+  },
+  "rent_villa": {
+   "mode": "rent",
+   "type": "villa"
+  },
+  "rent_floor": {
+   "mode": "rent",
+   "type": "floor"
+  }
+ },
  "cities": [
   {
    "slug": "riyadh",
@@ -14,14 +41,78 @@
    ],
    "districts": 189,
    "priced": 151,
-   "high": 82,
-   "median_ppm2": 3800,
+   "high": 0,
+   "median_ppm2": 3831,
    "breaks": [
     1750,
     3000,
     4500,
     7250
-   ]
+   ],
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.989,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1750,
+      2500,
+      3500,
+      5000
+     ],
+     "priced": 155,
+     "median": 2971
+    },
+    "sale_villa": {
+     "breaks": [
+      3000,
+      4500,
+      5500,
+      8500
+     ],
+     "priced": 131,
+     "median": 4891
+    },
+    "sale_apartment": {
+     "breaks": [
+      4000,
+      5500,
+      7500,
+      9500
+     ],
+     "priced": 101,
+     "median": 6375
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 169,
+     "median": 245
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 145,
+     "median": 229
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 155,
+     "median": 200
+    }
+   }
   },
   {
    "slug": "jeddah",
@@ -35,14 +126,78 @@
    ],
    "districts": 170,
    "priced": 109,
-   "high": 87,
+   "high": 79,
    "median_ppm2": 2841,
    "breaks": [
     1250,
     2250,
     3250,
     4000
-   ]
+   ],
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.899,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1250,
+      2000,
+      3250,
+      4250
+     ],
+     "priced": 115,
+     "median": 2472
+    },
+    "sale_villa": {
+     "breaks": [
+      3500,
+      4500,
+      6000,
+      9000
+     ],
+     "priced": 64,
+     "median": 5237
+    },
+    "sale_apartment": {
+     "breaks": [
+      3250,
+      3500,
+      3750,
+      4500
+     ],
+     "priced": 52,
+     "median": 3611
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 134,
+     "median": 188
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 93,
+     "median": 168
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 85,
+     "median": 164
+    }
+   }
   },
   {
    "slug": "makkah",
@@ -56,14 +211,78 @@
    ],
    "districts": 68,
    "priced": 49,
-   "high": 24,
+   "high": 19,
    "median_ppm2": 2250,
    "breaks": [
     1500,
     2000,
     2500,
     3500
-   ]
+   ],
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.666,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1000,
+      1750,
+      2250,
+      3500
+     ],
+     "priced": 42,
+     "median": 2038
+    },
+    "sale_villa": {
+     "breaks": [
+      2750,
+      3250,
+      3750,
+      5750
+     ],
+     "priced": 23,
+     "median": 3432
+    },
+    "sale_apartment": {
+     "breaks": [
+      3000,
+      3250,
+      3500,
+      4000
+     ],
+     "priced": 24,
+     "median": 3246
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 60,
+     "median": 123
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 28,
+     "median": 126
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 54,
+     "median": 109
+    }
+   }
   },
   {
    "slug": "madinah",
@@ -77,14 +296,78 @@
    ],
    "districts": 118,
    "priced": 83,
-   "high": 39,
+   "high": 32,
    "median_ppm2": 1899,
    "breaks": [
     1000,
     1500,
     2250,
     3250
-   ]
+   ],
+   "sale_window": "2024-Q1..2024-Q4",
+   "match": 0.984,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1000,
+      1250,
+      2000,
+      3000
+     ],
+     "priced": 67,
+     "median": 1576
+    },
+    "sale_villa": {
+     "breaks": [
+      2250,
+      2750,
+      3000,
+      3750
+     ],
+     "priced": 30,
+     "median": 2945
+    },
+    "sale_apartment": {
+     "breaks": [
+      2750,
+      3250,
+      3500,
+      3750
+     ],
+     "priced": 32,
+     "median": 3322
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 100,
+     "median": 126
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 45,
+     "median": 146
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 65,
+     "median": 116
+    }
+   }
   },
   {
    "slug": "dammam",
@@ -98,14 +381,78 @@
    ],
    "districts": 87,
    "priced": 60,
-   "high": 34,
+   "high": 0,
    "median_ppm2": 2328,
    "breaks": [
     1750,
     2000,
     2500,
     3000
-   ]
+   ],
+   "sale_window": "2024-Q3..2025-Q2",
+   "match": 0.928,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1500,
+      1750,
+      2250,
+      2500
+     ],
+     "priced": 60,
+     "median": 1979
+    },
+    "sale_villa": {
+     "breaks": [
+      2500,
+      2750,
+      3250,
+      4000
+     ],
+     "priced": 41,
+     "median": 2944
+    },
+    "sale_apartment": {
+     "breaks": [
+      3000,
+      3250,
+      3500,
+      3750
+     ],
+     "priced": 31,
+     "median": 3305
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 76,
+     "median": 163
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 47,
+     "median": 152
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 49,
+     "median": 139
+    }
+   }
   },
   {
    "slug": "khobar",
@@ -119,14 +466,233 @@
    ],
    "districts": 44,
    "priced": 39,
-   "high": 27,
+   "high": 0,
    "median_ppm2": 3233,
    "breaks": [
     1250,
     2750,
     3750,
     4500
-   ]
+   ],
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.676,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1750,
+      2250,
+      3000,
+      4500
+     ],
+     "priced": 30,
+     "median": 2499
+    },
+    "sale_villa": {
+     "breaks": [
+      2500,
+      3000,
+      3500,
+      3750
+     ],
+     "priced": 11,
+     "median": 3187
+    },
+    "sale_apartment": {
+     "breaks": [
+      3500,
+      4000,
+      4250,
+      5250
+     ],
+     "priced": 16,
+     "median": 4132
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 40,
+     "median": 194
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 31,
+     "median": 263
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 21,
+     "median": 149
+    }
+   }
+  },
+  {
+   "slug": "hofuf",
+   "ar": "الهفوف",
+   "en": "Al Hofuf",
+   "bounds": [
+    49.4744,
+    25.2623,
+    49.697,
+    25.3952
+   ],
+   "districts": 100,
+   "priced": 65,
+   "high": 0,
+   "median_ppm2": 1283,
+   "breaks": [
+    1000,
+    1250,
+    1500,
+    1750
+   ],
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.654,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      1000,
+      1500,
+      1750,
+      2250
+     ],
+     "priced": 48,
+     "median": 1624
+    },
+    "sale_villa": {
+     "breaks": [],
+     "priced": 0,
+     "median": null
+    },
+    "sale_apartment": {
+     "breaks": [
+      3000,
+      3250,
+      3500,
+      3750
+     ],
+     "priced": 12,
+     "median": 3058
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 91,
+     "median": 116
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 38,
+     "median": 98
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 44,
+     "median": 93
+    }
+   }
+  },
+  {
+   "slug": "hafar",
+   "ar": "حفر الباطن",
+   "en": "Hafar Al Batin",
+   "bounds": [
+    45.9083,
+    28.2143,
+    46.0891,
+    28.4691
+   ],
+   "districts": 36,
+   "priced": 30,
+   "high": 9,
+   "median_ppm2": 435,
+   "breaks": [
+    250,
+    500,
+    750,
+    1000
+   ],
+   "sale_window": "2025-Q1..2025-Q2",
+   "match": 0.852,
+   "metrics": {
+    "sale_land": {
+     "breaks": [
+      500,
+      750,
+      1000,
+      1250
+     ],
+     "priced": 27,
+     "median": 754
+    },
+    "sale_villa": {
+     "breaks": [],
+     "priced": 0,
+     "median": null
+    },
+    "sale_apartment": {
+     "breaks": [],
+     "priced": 0,
+     "median": null
+    },
+    "rent_apartment": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 31,
+     "median": 102
+    },
+    "rent_villa": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 15,
+     "median": 84
+    },
+    "rent_floor": {
+     "breaks": [
+      250,
+      500,
+      750,
+      1000
+     ],
+     "priced": 28,
+     "median": 79
+    }
+   }
   }
  ],
  "sources": [
@@ -145,6 +711,13 @@
    "url": "https://open.data.gov.sa"
   },
   {
+   "id": "rega_sales",
+   "ar": "الهيئة العامة للعقار: مؤشرات صفقات البيع (السجل العقاري)",
+   "en": "Real Estate General Authority (REGA): sales transaction indicators (Real Estate Registry)",
+   "license": "KSA Open Data License",
+   "url": "https://open.data.gov.sa"
+  },
+  {
    "id": "na_districts",
    "ar": "حدود الأحياء: العنوان الوطني عبر مستودع homaily/Saudi-Arabia-Regions-Cities-and-Districts",
    "en": "District boundaries: National Address, via homaily/Saudi-Arabia-Regions-Cities-and-Districts",
@@ -153,8 +726,8 @@
   }
  ],
  "totals": {
-  "districts": 676,
-  "priced": 491,
-  "high": 293
+  "districts": 812,
+  "priced": 586,
+  "high": 139
  }
 }

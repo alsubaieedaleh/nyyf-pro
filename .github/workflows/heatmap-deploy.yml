@@ -3,8 +3,8 @@
 # Going live is a deliberate switch: the deploy job only runs when the repository variable
 # HEATMAP_PUBLISH is "true" (Settings > Secrets and variables > Actions > Variables), and Pages is set to
 # "GitHub Actions" (Settings > Pages). Until then every run just builds and checks the site.
-# Optional variables: HEATMAP_WAITLIST_URL (Pro waitlist link), HEATMAP_CF_BEACON (Cloudflare Web
-# Analytics token), HEATMAP_STYLE_URL (basemap style).
+# Optional variables: HEATMAP_LEADS_URL (sign-up endpoint, see apps/heatmap/leads/), HEATMAP_CF_BEACON
+# (Cloudflare Web Analytics token), HEATMAP_STYLE_URL (basemap style).
 name: Heat map deploy
 
 on:
@@ -49,7 +49,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_WAITLIST_URL: ${{ vars.HEATMAP_WAITLIST_URL }}
+          VITE_LEADS_URL: ${{ vars.HEATMAP_LEADS_URL }}
           VITE_CF_BEACON_TOKEN: ${{ vars.HEATMAP_CF_BEACON }}
           VITE_MAP_STYLE_URL: ${{ vars.HEATMAP_STYLE_URL }}
         run: pnpm --filter @nyyf/heatmap build

@@ -1,6 +1,6 @@
 # Weekly refresh of the public district price map data from the open sources.
 #
-# Rebuilds the MOJ and REGA district prices, runs the quality gates in export_public.py, and commits
+# Rebuilds the MOJ and REGA district prices (sale by property type, rents by type), runs the quality gates in export_public.py, and commits
 # apps/heatmap/public/data only when the numbers changed. A failed gate fails this run (GitHub emails
 # the repo owner) and the last good data stays live. Cost: free on a public repo (about 5 minutes a week).
 name: Heat map data refresh
@@ -21,6 +21,11 @@ permissions:
 concurrency:
   group: heatmap-data
   cancel-in-progress: false
+
+# "shell: bash" turns on pipefail, so a failed quality gate is not hidden by "| tee".
+defaults:
+  run:
+    shell: bash
 
 jobs:
   refresh:
@@ -56,11 +61,22 @@ jobs:
           python data/pipelines/build_base.py --moj "$RUNNER_TEMP/moj/moj/sales" --out "$RUNNER_TEMP/base"
           python data/pipelines/build_final.py --base "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/final"
 
+      - name: Build sale prices by property type (REGA registry deeds)
+        run: |
+          python data/pipelines/build_rega_sales.py --sales "$RUNNER_TEMP/moj/rega/quarterlies/sales" \
+            --districts "$RUNNER_TEMP/base/districts.geojson" --out "$RUNNER_TEMP/base"
+
       - name: Export public data behind quality gates
         run: |
-          python data/pipelines/export_public.py --final "$RUNNER_TEMP/final" \
+          python data/pipelines/export_public.py --final "$RUNNER_TEMP/final" --base "$RUNNER_TEMP/base" \
             --out apps/heatmap/public/data ${{ inputs.force && '--force' || '' }} | tee "$RUNNER_TEMP/export.txt"
           { echo '### Heat map data'; echo '```'; cat "$RUNNER_TEMP/export.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Quarterly district report (risers, fallers, streaks)
+        run: |
+          python data/pipelines/build_report.py --deals "$RUNNER_TEMP/final/deals_clean.csv.gz" \
+            --rega "$RUNNER_TEMP/base/sales_district_quarterly.csv" \
+            --districts apps/heatmap/public/data/districts.geojson --out apps/heatmap/public/data/report.json
 
       - name: Commit changed data
         id: commit

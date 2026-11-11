@@ -133,8 +133,8 @@ function reportEmail_(c, city, locale, unsubLink) {
     return "<h3 style='margin:22px 0 4px;color:#157d79'>" + segName[k][ar ? 0 : 1] + "</h3>" +
       "<p style='margin:0;color:#555'>" + (ar ? "صاعدة " : "Rising ") + s.rising + " · " + (ar ? "هابطة " : "falling ") + s.falling +
       (s.median_chg != null ? " · " + (ar ? "التغير الوسيط " : "median change ") + pct(s.median_chg) : "") + "</p>" +
-      list(ar ? "الأكثر صعودًا" : "Biggest risers", s.risers, function (d) { return "<b style='color:#17864a'>" + pct(d.chg) + "</b> · " + qs(d.streak); }, type) +
-      list(ar ? "الأكثر هبوطًا" : "Biggest fallers", s.fallers, function (d) { return "<b style='color:#c2453f'>" + pct(d.chg) + "</b> · " + qs(d.streak); }, type);
+      list(ar ? "الأكثر صعودًا" : "Biggest risers", s.risers, function (d) { return "<b style='color:#17864a'>" + pct(d.chg) + "</b> · " + qs(d.streak) + " · <span style='color:#888'>" + d.n + (ar ? " صك" : " deeds") + "</span>"; }, type) +
+      list(ar ? "الأكثر هبوطًا" : "Biggest fallers", s.fallers, function (d) { return "<b style='color:#c2453f'>" + pct(d.chg) + "</b> · " + qs(d.streak) + " · <span style='color:#888'>" + d.n + (ar ? " صك" : " deeds") + "</span>"; }, type);
   }).join("");
   const source = c.source === "rega"
     ? (ar ? "المصدر: صكوك السجل العقاري (الهيئة العامة للعقار) حسب نوع العقار." : "Source: Real Estate Registry deeds (REGA) by property type.")

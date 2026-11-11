@@ -54,6 +54,16 @@ jobs:
           VITE_MAP_STYLE_URL: ${{ vars.HEATMAP_STYLE_URL }}
         run: pnpm --filter @nyyf/heatmap build
 
+      # Every page and every map mode/type must load without a script or map error (a bad colour
+      # expression for one city blanks the whole map while the page still "works").
+      - name: Check every page loads
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          npx --prefix "$RUNNER_TEMP/pw" playwright install --with-deps chromium
+          (cd apps/heatmap && npx vite preview --port 4173 --strictPort &)
+          npx --yes wait-on@8.0.3 -t 30000 http://localhost:4173/
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node apps/heatmap/scripts/smoke.cjs
+
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request' && vars.HEATMAP_PUBLISH == 'true'
         with:

@@ -410,6 +410,22 @@ button {
 .kpis.three {
   grid-template-columns: repeat(3, 1fr);
 }
+.kpis.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+.kpi .period {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.weekly li small.n {
+  display: inline-block;
+  min-width: 52px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
 .kpi {
   display: flex;
   flex-direction: column;
@@ -626,6 +642,9 @@ a.kpi:hover {
   .two,
   .kpis.three {
     grid-template-columns: 1fr;
+  }
+  .kpis.four {
+    grid-template-columns: 1fr 1fr;
   }
   .join {
     padding: 22px;

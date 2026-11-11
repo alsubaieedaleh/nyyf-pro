@@ -83,6 +83,24 @@ export function renderNav(el: HTMLElement, locale: Locale, current: "landing" | 
 const PHONE = /^(\+?966|0)?5\d{8}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+let mapped: Promise<string[]> | null = null;
+
+/** Split the city list into cities with a map today and the rest, once the published city list loads. */
+function groupCities(select: HTMLSelectElement, locale: Locale) {
+  const s = STRINGS[locale];
+  mapped ??= fetch("./data/meta.json")
+    .then((r) => r.json() as Promise<{ cities: { slug: string }[] }>)
+    .then((m) => m.cities.map((c) => c.slug))
+    .catch(() => []);
+  mapped.then((onMap) => {
+    if (!onMap.length || select.value) return;
+    const opts = (list: string[]) => list.map((c) => `<option value="${c}">${esc(CITY_NAMES[c][locale])}</option>`).join("");
+    select.innerHTML = `<option value="" disabled selected>—</option>
+      <optgroup label="${esc(s.citiesOnMap)}">${opts(CITY_SLUGS.filter((c) => onMap.includes(c)))}</optgroup>
+      <optgroup label="${esc(s.citiesSoon)}">${opts(CITY_SLUGS.filter((c) => !onMap.includes(c)))}<option value="other">${esc(s.roles.other)}</option></optgroup>`;
+  });
+}
+
 export function renderLeadForm(el: HTMLElement, locale: Locale, source: string) {
   const s = STRINGS[locale];
   const opt = (o: Record<string, string>) => Object.entries(o).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
@@ -105,6 +123,7 @@ export function renderLeadForm(el: HTMLElement, locale: Locale, source: string) 
     </form>`;
   const form = el.querySelector("form")!;
   const msg = form.querySelector<HTMLElement>(".form-msg")!;
+  groupCities(form.querySelector<HTMLSelectElement>("select[name=city]")!, locale);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(form);

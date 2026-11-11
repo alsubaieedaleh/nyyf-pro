@@ -7,8 +7,8 @@
   --line: #e6e5df;
   --surface: #ffffff;
   --canvas: #f6f5f1;
-  --up: #c2453f;
-  --down: #157d79;
+  --up: #17864a;
+  --down: #c2453f;
   --shadow: 0 6px 24px rgba(20, 30, 30, 0.08), 0 1px 3px rgba(20, 30, 30, 0.06);
   color-scheme: light;
   font-family: "IBM Plex Sans Arabic", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -366,7 +366,7 @@ button {
   color: var(--brand);
 }
 .form-msg.err {
-  color: var(--up);
+  color: var(--down);
 }
 
 /* ---------- Home ---------- */
@@ -699,11 +699,11 @@ a.kpi:hover {
   white-space: nowrap;
 }
 .streak.up {
-  background: #fbe9e7;
+  background: #e3f4e9;
   color: var(--up);
 }
 .streak.down {
-  background: #e3f4ee;
+  background: #fbe9e7;
   color: var(--down);
 }
 .weekly .fine {

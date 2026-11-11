@@ -15,6 +15,7 @@ This folder is the single reference for what Nyyf Pro is, who it serves, how it 
 | 09 | [09-decisions-and-open-questions.md](09-decisions-and-open-questions.md) | Decisions made, decisions pending, risks |
 | 10 | [10-data-sources.md](10-data-sources.md) | Data the prototype runs on: sources, licenses, freshness, coverage, gaps |
 | 11 | [11-data-pipeline.md](11-data-pipeline.md) | Data pipeline flow: ingest to publish, confidence, refresh cadence, plugging in future sources |
+| – | [../apps/heatmap/README.md](../apps/heatmap/README.md) | Free public district price heat map: what it shows, weekly refresh, going live, licensing |
 
 ## One-paragraph summary
 

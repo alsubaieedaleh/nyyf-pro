@@ -18,7 +18,8 @@ const PAGES = [
 const IGNORE = /Failed to load resource|net::ERR_|AJAXError|tiles\.openfreemap|cloudflareinsights/i;
 
 (async () => {
-  const browser = await chromium.launch();
+  // In CI, use the Google Chrome the runner already has (SMOKE_CHANNEL=chrome) instead of downloading one.
+  const browser = await chromium.launch(process.env.SMOKE_CHANNEL ? { channel: process.env.SMOKE_CHANNEL } : {});
   const failures = [];
   for (const path of PAGES) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

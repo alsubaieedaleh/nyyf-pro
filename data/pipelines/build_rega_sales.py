@@ -139,7 +139,7 @@ def _read_file(path: Path):
                 if ppm2 is not None and not lo <= ppm2 <= hi:
                     ppm2 = None
                 # Raw land tracts (average parcel over RAW_LAND_M2) swamp an area-weighted land price.
-                if t == "land" and area and area / deeds > RAW_LAND_M2:
+                if t == "land" and "district" in m and area and area / deeds > RAW_LAND_M2:
                     ppm2 = None
                 yield {
                     "quarter": f"{int(year)}-Q{int(q)}",
@@ -219,10 +219,16 @@ def main():
         print(f"WARNING: {name}: {n} rows dropped")
 
     # ---- City series: city-level files as given, district files summed ----
+    # Price = total value / total area in both, the same rule as the district prices.
     series = {}
+    city_acc = defaultdict(list)
     for r in city_rows:
-        series[(r["slug"], r["type"], r["quarter"])] = {
-            "deeds": r["deeds"], "value": r["value"], "area": r["area"], "ppm2": r["ppm2"]}
+        city_acc[(r["slug"], r["type"], r["quarter"])].append(r)
+    for key, rows in city_acc.items():
+        series[key] = {"deeds": sum(x["deeds"] for x in rows), "value": sum(x["value"] for x in rows),
+                       "area": sum(x["area"] for x in rows),
+                       # City files mix raw tracts into land and they cannot be taken out, so no land price there.
+                       "ppm2": None if key[1] == "land" else ratio(rows)}
     acc = defaultdict(list)
     for r in district_rows:
         acc[(r["slug"], r["type"], r["quarter"])].append(r)
@@ -233,7 +239,7 @@ def main():
             "deeds": sum(x["deeds"] for x in rows),
             "value": sum(x["value"] for x in rows),
             "area": sum(x["area"] for x in rows),
-            "ppm2": wmean([(x["ppm2"], x["deeds"]) for x in rows]),
+            "ppm2": ratio(rows),
         }
 
     # ---- District prices per type ----
@@ -274,6 +280,9 @@ def main():
         n_a = sum(x["deeds"] for x in this if x["ppm2"])
         n_b = sum(x["deeds"] for x in prev if x["ppm2"])
         change = round(a / b - 1, 3) if a and b and n_a >= 20 and n_b >= 20 else None
+        # Same rules as the report: a mix shift (deed counts over 3x apart) or a move beyond 75% is not shown.
+        if change is not None and (max(n_a, n_b) > 3 * min(n_a, n_b) or abs(change) > 0.75):
+            change = None
         conf = next((c for n, c in CONF if deeds >= n), "none")
         y, qn = int(qs[-1][:4]), int(qs[-1][-1])
         age = (date.today() - date(y + (qn == 4), 1 if qn == 4 else qn * 3 + 1, 1)).days / 30.4

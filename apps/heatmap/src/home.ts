@@ -103,13 +103,17 @@ function lastQuarter(c: CityMarket) {
 
 function chart(c: CityMarket) {
   const series = SALE_TYPES.map((ty) => ({ ty, pts: (c.types[ty] ?? []).filter((p) => p.ppm2 != null) }));
-  const qs = [...new Set(series.flatMap((s) => s.pts.map((p) => p.q)))].sort();
+  // Every quarter from first to last, so a quarter with no data leaves a gap instead of a straight line.
+  const qn = (q: string) => Number(q.slice(0, 4)) * 4 + Number(q.slice(-1)) - 1;
+  const have = series.flatMap((s) => s.pts.map((p) => qn(p.q)));
+  const qs: string[] = [];
+  for (let n = Math.min(...have); n <= Math.max(...have); n++) qs.push(`${Math.floor(n / 4)}-Q${(n % 4) + 1}`);
   if (qs.length < 2) return "";
   const vals = series.flatMap((s) => s.pts.map((p) => p.ppm2!));
   const max = Math.max(...vals) * 1.1;
   const W = 640;
   const H = 220;
-  const pad = { l: 44, r: 12, t: 12, b: 28 };
+  const pad = { l: 44, r: 28, t: 12, b: 28 };
   const x = (q: string) => pad.l + (qs.indexOf(q) / (qs.length - 1)) * (W - pad.l - pad.r);
   const y = (v: number) => pad.t + (1 - v / max) * (H - pad.t - pad.b);
   const grid = [0.25, 0.5, 0.75, 1]
@@ -124,15 +128,18 @@ function chart(c: CityMarket) {
   const lines = series
     .map(({ ty, pts }) => {
       if (pts.length < 2) return "";
-      const d = pts.map((p, i) => `${i ? "L" : "M"}${x(p.q).toFixed(1)},${y(p.ppm2!).toFixed(1)}`).join("");
+      const d = pts
+        .map((p, i) => `${i && qn(p.q) - qn(pts[i - 1].q) === 1 ? "L" : "M"}${x(p.q).toFixed(1)},${y(p.ppm2!).toFixed(1)}`)
+        .join("");
       const last = pts[pts.length - 1];
       return `<path d="${d}" stroke="${LINE[ty]}" class="ln"/><circle cx="${x(last.q)}" cy="${y(last.ppm2!)}" r="4" fill="${LINE[ty]}"/>`;
     })
     .join("");
+  const gap = series.some(({ pts }) => pts.some((p, i) => i && qn(p.q) - qn(pts[i - 1].q) > 1));
   const legend = SALE_TYPES.map((ty) => `<span><i style="background:${LINE[ty]}"></i>${t().types.sale[ty]}</span>`).join("");
   return `<figure class="chart"><figcaption>${t().trend} <span class="muted">(${t().sar_m2})</span></figcaption>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t().trend}" dir="ltr">${grid}${xl}${lines}</svg>
-    <div class="chart-legend">${legend}</div></figure>`;
+    <div class="chart-legend">${legend}</div>${gap ? `<p class="fine muted">${t().chartGap}</p>` : ""}</figure>`;
 }
 
 function reportSection(rc: RCity) {

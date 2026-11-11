@@ -23,21 +23,19 @@ import json
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import sys
+from pathlib import Path as _P
+
+sys.path.insert(0, str(_P(__file__).resolve().parent))
+from cities import CITY_AR  # noqa: E402
+
 import numpy as np
 import pandas as pd
 
-CITY_AR = {
-    "riyadh": "الرياض",
-    "jeddah": "جدة",
-    "makkah": "مكة المكرمة",
-    "madinah": "المدينة المنورة",
-    "dammam": "الدمام",
-    "khobar": "الخبر",
-}
 LAND = "قطعة أرض"
-AS_OF = date(2026, 3, 31)  # last MOJ deal in the open files
-WINDOW_12M = (pd.Timestamp("2025-04-01"), pd.Timestamp("2026-03-31"))
-WINDOW_24M = (pd.Timestamp("2024-04-01"), pd.Timestamp("2026-03-31"))
+# AS_OF and the 12- and 24-month windows are set in main() from the latest deal in the data.
+AS_OF = date(2026, 3, 31)
+WINDOW_12M = WINDOW_24M = (None, None)
 PLAN_QUARTER = "2023-Q1"
 MAX_RATIO = 5  # same outlier rule as build_moj_market.py
 MIN_DEALS = 5  # district price needs this many deals (as on the map)
@@ -106,6 +104,8 @@ def confidence(n, spread, months_old, method_cap):
     method_cap limits the label for estimates that are not direct current sales."""
     if not n or pd.isna(n):
         return 0, "none"
+    if pd.notna(spread) and spread < 0.02:
+        spread = 1.5  # a zero-width range means one repeated price (a bulk batch), not agreement
     score = min(50, 50 * np.log10(n) / np.log10(100))  # 100+ deals = full marks
     score += 30 * max(0.0, 1 - min(spread if pd.notna(spread) else 1.5, 1.5) / 1.5)
     score += 20 * max(0.0, 1 - months_old / 36)
@@ -133,6 +133,29 @@ def main():
     rents = pd.read_csv(base / "rents.csv")
     offers = pd.read_csv(base / "offers.csv", dtype={"plan": str})
     geo = json.loads((base / "districts.geojson").read_text(encoding="utf-8"))
+
+    global AS_OF, WINDOW_12M, WINDOW_24M
+    last = deals["date"].max()
+    AS_OF = last.date()
+    WINDOW_12M = (last - pd.DateOffset(years=1) + pd.Timedelta(days=1), last)
+    WINDOW_24M = (last - pd.DateOffset(years=2) + pd.Timedelta(days=1), last)
+
+    # MOJ coverage per city: deals a quarter in the last 12 months against the 12 months before (quarters with
+    # data only, so a missing file does not count as a fall). Riyadh moved most transfers to the Real Estate
+    # Registry in 2025, so its remaining MOJ deals are not a fair sample and its MOJ prices are capped.
+    dq = deals.groupby(["city", "quarter"]).size()
+    coverage = {}
+    for city in deals["city"].unique():
+        qs = dq[city]
+        now = [qs[q] for q in qs.index if pd.Period(q, "Q").end_time >= WINDOW_12M[0]]
+        before = [qs[q] for q in qs.index if WINDOW_24M[0] <= pd.Period(q, "Q").end_time < WINDOW_12M[0]]
+        coverage[city] = (np.mean(now) / np.mean(before)) if now and before else 1.0
+    print("MOJ coverage (deals a quarter, last 12 months vs the 12 before):",
+          ", ".join(f"{c} {v:.0%}" for c, v in sorted(coverage.items(), key=lambda kv: kv[1])))
+
+    def coverage_cap(city):
+        v = coverage.get(city, 1.0)
+        return 44 if v < 0.5 else 69 if v < 0.75 else 100
 
     # ---- Clean deals: location level, outlier flag, usable price per m² ----
     deals["district_id"] = deals["district_id"].astype("Int64")
@@ -175,7 +198,8 @@ def main():
     pl = deals[deals["quarter"].eq(PLAN_QUARTER) & deals["is_land"] & deals["plan"].notna() & deals["properties"].eq(1)]
     pq = pl.groupby(["district_id", "plan"])["ppm2"].apply(stats).unstack()
 
-    months_old_12m = 6  # middle of the 12-month window
+    # Age of the middle of the 12-month window at build time, so confidence falls as the data gets older.
+    months_old_12m = max(6, (date.today() - (AS_OF - pd.Timedelta(days=182).to_pytimedelta())).days / 30.4)
     months_old_q1 = (AS_OF.year - 2023) * 12 + AS_OF.month - 2  # mid 2023-Q1 to as-of
 
     rows = []
@@ -194,14 +218,14 @@ def main():
             price = d.ppm2_12m
             lo, hi = band(price, s)
             basis, n_basis = "district_sold_residential_12m", n12
-            score, label = confidence(n12, (hi - lo) / price, months_old_12m, 100)
+            score, label = confidence(n12, (hi - lo) / price, months_old_12m, coverage_cap(d.city))
         elif did in d24.index and d24.loc[did, "n"] >= MIN_DEALS:
             # Too few sales in 12 months: widen to 24 months, unadjusted for the change in between.
             s24 = d24.loc[did]
             price = s24["med"]
             lo, hi = band(price, s24)
             basis, n_basis = "district_sold_residential_24m", int(s24["n"])
-            score, label = confidence(n_basis, (hi - lo) / price, 12, 50)
+            score, label = confidence(n_basis, (hi - lo) / price, months_old_12m + 6, min(50, coverage_cap(d.city)))
         else:
             price = lo = hi = np.nan
             basis, n_basis, score, label = "no_price", 0, 0, "none"
@@ -211,7 +235,8 @@ def main():
         srcs = ["moj_deals" if basis != "no_price" else None, "rega_rent" if did in rent_contracts.index else None,
                 "old_offers" if pd.notna(ask) else None, "na_districts"]
         reason = {
-            "district_sold_residential_12m": f"{n12} residential sales in the last 12 months",
+            "district_sold_residential_12m": f"{n12} residential sales in the last 12 months"
+            + (f"; MOJ now records only {coverage[d.city]:.0%} of this city's usual volume" if coverage_cap(d.city) < 100 else ""),
             "district_sold_residential_24m": f"{n_basis} residential sales in 24 months; under {MIN_DEALS} in the last 12",
             "no_price": "under 5 residential sales in 24 months; use a neighbouring district",
         }[basis]

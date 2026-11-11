@@ -1,4 +1,5 @@
 export type Locale = "ar" | "en";
+export type Mode = "sale" | "rent";
 
 export const STRINGS = {
   ar: {
@@ -6,90 +7,280 @@ export const STRINGS = {
     search: "ابحث عن حي",
     close: "إغلاق",
     lang: "EN",
-    ppm2: "سعر المتر",
     sar_m2: "ر.س/م²",
-    range: "النطاق المعتاد",
+    sar_m2_year: "ر.س/م² سنويًا",
+    sar: "ر.س",
+    perYear: "سنويًا",
     conf: { high: "ثقة عالية", medium: "ثقة متوسطة", low: "ثقة منخفضة", none: "لا يوجد سعر" },
-    noPrice: "لا توجد صفقات كافية في هذا الحي لتقدير سعر.",
-    yoy: "التغير السنوي",
-    deals12: "صفقات آخر 12 شهرًا",
-    lastDeal: "آخر صفقة",
-    rent: "إيجار الشقق السنوي",
-    rentUnit: "ر.س/م² سنويًا",
+    mode: { sale: "بيع", rent: "إيجار" },
+    types: {
+      sale: { land: "أراضي", villa: "فلل", apartment: "شقق" },
+      rent: { apartment: "شقق", villa: "فلل", floor: "أدوار" },
+    },
+    typeOne: { land: "أرض", villa: "فيلا", apartment: "شقة", floor: "دور", duplex: "دوبلكس" },
+    metricTitle: { sale: "سعر المتر للبيع", rent: "إيجار المتر السنوي" },
+    noPrice: "لا توجد صفقات كافية لهذا النوع في هذا الحي.",
+    reasonSale: (n: number, w: string) => `${n} صك بيع مسجل، ${w}`,
+    reasonRent: (n: number) => `${n} عقد إيجار في آخر أربعة أرباع (منصة إيجار)`,
+    change: "التغير السنوي",
+    changeNote: "مقارنة بنفس الأرباع من العام السابق",
+    allTypes: "كل الأنواع في هذا الحي",
+    sale: "بيع",
+    rent: "إيجار",
+    yearlyRent: "متوسط الإيجار السنوي",
+    mojAll: "كل الصفقات السكنية (وزارة العدل)",
+    mojNote: (d: string) => `حتى ${d}، تخلط الأراضي والفلل والشقق`,
     share: "مشاركة",
     copied: "تم نسخ الرابط",
-    legendTitle: "سعر المتر · ",
     legendNone: "لا يوجد سعر",
     legendConf: "اللون الباهت = ثقة أقل",
     asOf: "البيانات حتى",
-    method:
-      "السعر هو وسيط سعر المتر لكل الصفقات السكنية (أراضٍ وشقق وفلل) المسجلة في الحي خلال آخر 12 شهرًا، أو 24 شهرًا إذا قلّت الصفقات. النطاق المعتاد هو الربع الأدنى إلى الربع الأعلى. الثقة تعتمد على عدد الصفقات وتقارب الأسعار وحداثتها.",
+    priced: (p: number, t: number) => `${p} حيًا مسعّرًا من ${t}`,
     disclaimer:
       "تقديرات استرشادية من بيانات حكومية مفتوحة، وليست تقييمًا عقاريًا معتمدًا ولا بيانات رسمية. تحقق دائمًا قبل اتخاذ أي قرار.",
-    aboutTitle: "عن الخريطة",
-    aboutLead: "خريطة مجانية لسعر المتر في أحياء ست مدن سعودية، تُحدَّث تلقائيًا من البيانات المفتوحة.",
+    aboutTitle: "عن البيانات",
+    methodSale:
+      "أسعار البيع لكل نوع (أرض، فيلا، شقة) من مؤشرات صفقات البيع للهيئة العامة للعقار (صكوك السجل العقاري)، متوسط سعر المتر لآخر أربعة أرباع منشورة، مرجّحًا بعدد الصكوك. سعر المتر حسب مساحة الصك.",
+    methodRent:
+      "الإيجارات من مؤشرات الإيجار للهيئة العامة للعقار (عقود منصة إيجار)، متوسط الإيجار السنوي للمتر لآخر أربعة أرباع.",
+    methodConf: "الثقة: عالية من 30 صكًا (50 عقدًا للإيجار)، متوسطة من 10 (15)، منخفضة من 3 (5)، وأقل من ذلك لا يُعرض سعر.",
     sources: "المصادر",
-    licenseNote: "صفقات وزارة العدل ومؤشرات الإيجار من الهيئة العامة للعقار منشورة برخصة البيانات المفتوحة للمملكة. الخريطة الأساسية © OpenStreetMap و OpenFreeMap.",
-    priced: (p: number, t: number, h: number) => `${p} حيًا مسعّرًا من ${t}، منها ${h} بثقة عالية`,
-    pro: "نيّف برو للوسطاء: تقييم فوري ومخططات وقطع",
-    proCta: "سجّل اهتمامك",
-    perYear: "سنويًا",
+    licenseNote:
+      "البيانات منشورة برخصة البيانات المفتوحة للمملكة. الخريطة الأساسية © OpenStreetMap و OpenFreeMap.",
+    // Navigation
+    navHome: "السوق",
+    navSale: "خريطة البيع",
+    navRent: "خريطة الإيجار",
+    navJoin: "انضم",
+    // Landing
+    heroTitle: "اعرف سعر المتر في أي حي، قبل أن تشتري أو تبيع أو تستأجر",
+    heroLead:
+      "خرائط مجانية لأسعار الأراضي والفلل والشقق وإيجاراتها في الرياض وجدة ومكة والمدينة والدمام والخبر، من البيانات الحكومية المفتوحة، وتُحدَّث تلقائيًا.",
+    ctaSale: "خريطة أسعار البيع",
+    ctaRent: "خريطة الإيجارات",
+    ctaMarket: "نظرة على السوق",
+    f1t: "حسب نوع العقار",
+    f1d: "أراضٍ وفلل وشقق، كلٌ بسعره، بدل متوسط واحد يخلط الأنواع.",
+    f2t: "كل سعر بدرجة ثقة",
+    f2d: "نعرض عدد الصفقات خلف كل رقم، ونخفي ما لا يكفي لتقدير موثوق.",
+    f3t: "مجاني ويتجدد",
+    f3d: "مصادر رسمية مفتوحة: وزارة العدل والهيئة العامة للعقار وإيجار.",
+    stat1: "حي مغطى",
+    stat2: "صك بيع مسجل",
+    stat3: "مدن",
+    joinTitle: "كن أول من يجرّب نيّف برو",
+    joinLead: "تنبيهات الأسعار في أحيائك، تقييم فوري للعقار، وأدوات الوسيط. اترك بياناتك ونتواصل معك.",
+    // Form
+    fName: "الاسم",
+    fContact: "الجوال أو البريد الإلكتروني",
+    fRole: "أنت",
+    roles: { broker: "وسيط عقاري", buyer: "أبحث عن عقار", owner: "مالك أو بائع", investor: "مستثمر", developer: "مطوّر", other: "أخرى" },
+    fCity: "المدينة",
+    fInterest: "ما الذي يهمك؟",
+    interests: { alerts: "تنبيهات الأسعار", valuation: "تقييم عقار", broker_tools: "أدوات الوسطاء", data: "بيانات وتقارير", other: "أخرى" },
+    fConsent: "أوافق على أن تتواصل معي نيّف بخصوص خدماتها، وعلى حفظ بياناتي لهذا الغرض فقط.",
+    fSubmit: "أرسل",
+    fSending: "جارٍ الإرسال…",
+    fThanks: "شكرًا! وصلتنا بياناتك وسنتواصل معك قريبًا.",
+    fError: "تعذر الإرسال. حاول مرة أخرى.",
+    fInvalid: "أدخل رقم جوال أو بريدًا إلكترونيًا صحيحًا.",
+    fSoon: "التسجيل يُفتح قريبًا.",
+    privacy: "لا نشارك بياناتك مع أي جهة. يمكنك طلب حذفها في أي وقت.",
+    // Home
+    homeTitle: "السوق العقاري اليوم",
+    homeLead: "أهم المؤشرات لكل مدينة من صفقات البيع المسجلة وعقود الإيجار.",
+    kDeals: "صفقات البيع السكنية في آخر ربع",
+    kValue: "قيمة الصفقات في آخر ربع",
+    kPpm2: "متوسط سعر المتر",
+    kRent: "متوسط إيجار المتر سنويًا",
+    trend: "سعر المتر حسب الربع",
+    topPrice: "الأغلى",
+    topActive: "الأنشط",
+    wkTitle: "التقرير الربعي للأحياء",
+    wkLead: (q: string, vs: string) => `${q} مقابل ${vs}: سعر المتر في كل حي خلال آخر ربعين مقارنة بنفس الفترة من العام الماضي.`,
+    excluded: (n: string) => `استبعدنا ${n} من المقارنات لأن التغير تجاوز 75٪ في سنة، وهذا يعني غالبًا اختلاف نوع القطع المباعة (أرض خام كبيرة أو مشروع جديد) لا تغيرًا في سعر الحي.`,
+    srcRega: "المصدر: صكوك السجل العقاري (الهيئة العامة للعقار) حسب نوع العقار. السعر = مجموع قيم الصكوك ÷ مجموع مساحاتها، ويلزم 20 صكًا على الأقل في كل فترة.",
+    srcMoj: "المصدر: صفقات البيع السكنية في وزارة العدل، الأراضي والفلل والشقق معًا (البيانات المفتوحة لا تفصل النوع)، دون الصفقات الجماعية. السعر = الوسيط، ويلزم 20 صفقة على الأقل في كل فترة.",
+    lowCoverage: (p: string) => `تنبيه: وزارة العدل تسجل الآن ${p} فقط من حجم صفقات هذه المدينة المعتاد بعد انتقال التسجيل إلى السجل العقاري.`,
+    segAll: "كل السكني",
+    wkRisers: "الأكثر صعودًا",
+    wkStreaks: "أطول سلسلة صعود",
+    wkFallers: "الأكثر هبوطًا",
+    wkActive: "الأكثر صفقات",
+    qtrs: (n: string) => {
+      const v = Number(n.replace(/\D/g, ""));
+      return v === 1 ? "ربع واحد" : v === 2 ? "ربعين" : v <= 10 ? `${n} أرباع` : `${n} ربعًا`;
+    },
+    streakUp: (n: string) => `فوق العام الماضي منذ ${n} على التوالي`,
+    streakDown: (n: string) => `تحت العام الماضي منذ ${n} على التوالي`,
+    wkBreadth: "أحياء صاعدة / هابطة",
+    wkMedian: "التغير الوسيط للأحياء",
+    vsLastYearShort: "عن العام الماضي",
+    ins: {
+      top_riser: (d: string, p: string, w: string) => `<b>${d}</b> الأعلى صعودًا: ${p} عن العام الماضي، وفوقه منذ ${w}.`,
+      longest_streak: (d: string, p: string, w: string) => `<b>${d}</b> أطول سلسلة صعود: فوق العام الماضي منذ ${w} على التوالي (${p}).`,
+      top_faller: (d: string, p: string, w: string) => `<b>${d}</b> الأكثر هبوطًا: ${p} عن العام الماضي، وتحته منذ ${w}.`,
+      breadth: (up: string, down: string, total: string, med: string) => `من ${total} حيًا بصفقات كافية: ${up} صاعدة و${down} هابطة، والتغير الوسيط ${med}.`,
+    },
+    rTitle: "استلم التقرير على بريدك",
+    rLead: "مع كل ربع جديد: الأحياء الأكثر صعودًا وهبوطًا وسلاسل الصعود في مدينتك. مجانًا، وتلغي متى شئت.",
+    rEmail: "بريدك الإلكتروني",
+    rSubmit: "اشترك",
+    rThanks: "تم! سيصلك التقرير مع كل ربع جديد.",
+    rInvalid: "اكتب بريدًا إلكترونيًا صحيحًا.",
+    rConsent: "أوافق على استلام تقرير نيّف على بريدي.",
+    deeds: "صك",
+    openMap: "افتح على الخريطة",
+    lastQuarter: (q: string) => `آخر ربع: ${q}`,
+    vsLastYear: "مقارنة بالربع نفسه العام الماضي",
+    medianDistrict: "وسيط الأحياء",
+    goSale: "استكشف أسعار البيع",
+    goRent: "استكشف الإيجارات",
+    footer: "نيّف · بيانات عقارية مفتوحة",
   },
   en: {
     brand: "Nyyf",
     search: "Search a district",
     close: "Close",
     lang: "عربي",
-    ppm2: "Price per m²",
     sar_m2: "SAR/m²",
-    range: "Typical range",
+    sar_m2_year: "SAR/m² a year",
+    sar: "SAR",
+    perYear: "a year",
     conf: { high: "High confidence", medium: "Medium confidence", low: "Low confidence", none: "No price" },
-    noPrice: "Not enough deals in this district to estimate a price.",
-    yoy: "Year on year",
-    deals12: "Deals, last 12 months",
-    lastDeal: "Last deal",
-    rent: "Apartment rent",
-    rentUnit: "SAR/m² a year",
+    mode: { sale: "Sale", rent: "Rent" },
+    types: {
+      sale: { land: "Land", villa: "Villas", apartment: "Apartments" },
+      rent: { apartment: "Apartments", villa: "Villas", floor: "Floors" },
+    },
+    typeOne: { land: "Land", villa: "Villa", apartment: "Apartment", floor: "Floor", duplex: "Duplex" },
+    metricTitle: { sale: "Sale price per m²", rent: "Yearly rent per m²" },
+    noPrice: "Not enough deals of this type in this district.",
+    reasonSale: (n: number, w: string) => `${n} registered sale deeds, ${w}`,
+    reasonRent: (n: number) => `${n} rental contracts in the last four quarters (Ejar)`,
+    change: "Year on year",
+    changeNote: "Against the same quarters a year earlier",
+    allTypes: "All types in this district",
+    sale: "Sale",
+    rent: "Rent",
+    yearlyRent: "Average yearly rent",
+    mojAll: "All residential deals (Ministry of Justice)",
+    mojNote: (d: string) => `to ${d}, mixes land, villas and apartments`,
     share: "Share",
     copied: "Link copied",
-    legendTitle: "Price per m² · ",
     legendNone: "No price",
     legendConf: "Paler = lower confidence",
     asOf: "Data to",
-    method:
-      "The price is the median price per m² of all residential sales (land, apartments, villas) registered in the district in the last 12 months, or 24 when deals are few. The typical range is the 25th to 75th percentile. Confidence reflects how many deals there are, how close their prices are, and how recent they are.",
+    priced: (p: number, t: number) => `${p} of ${t} districts priced`,
     disclaimer:
       "Indicative estimates from government open data. Not a certified valuation and not official data. Always check before you decide.",
-    aboutTitle: "About this map",
-    aboutLead: "A free map of price per m² by district in six Saudi cities, refreshed automatically from open data.",
+    aboutTitle: "About the data",
+    methodSale:
+      "Sale prices per type (land, villa, apartment) come from REGA's sales transaction indicators (Real Estate Registry deeds): the average price per m² over the last four published quarters, weighted by deed count. Price per m² is by deed area.",
+    methodRent: "Rents come from REGA's rental indicators (Ejar contracts): average yearly rent per m² over the last four quarters.",
+    methodConf: "Confidence: high from 30 deeds (50 contracts for rent), medium from 10 (15), low from 3 (5). Below that, no price is shown.",
     sources: "Sources",
-    licenseNote: "Ministry of Justice deals and REGA rental indicators are published under the KSA Open Data License. Basemap © OpenStreetMap contributors, OpenFreeMap.",
-    priced: (p: number, t: number, h: number) => `${p} of ${t} districts priced, ${h} with high confidence`,
-    pro: "Nyyf Pro for brokers: instant valuations, plans and plots",
-    proCta: "Join the waitlist",
-    perYear: "a year",
+    licenseNote: "Data published under the KSA Open Data License. Basemap © OpenStreetMap contributors, OpenFreeMap.",
+    navHome: "Market",
+    navSale: "Sale map",
+    navRent: "Rent map",
+    navJoin: "Join",
+    heroTitle: "Know the price per m² in any district before you buy, sell or rent",
+    heroLead:
+      "Free maps of land, villa and apartment prices and rents in Riyadh, Jeddah, Makkah, Madinah, Dammam and Al Khobar, from government open data, refreshed automatically.",
+    ctaSale: "Sale price map",
+    ctaRent: "Rent map",
+    ctaMarket: "Market overview",
+    f1t: "By property type",
+    f1d: "Land, villas and apartments each with their own price, not one average that mixes them.",
+    f2t: "Every price with its confidence",
+    f2d: "We show how many deals sit behind each number and hide what is too thin to trust.",
+    f3t: "Free and always fresh",
+    f3d: "Official open sources: Ministry of Justice, REGA and Ejar.",
+    stat1: "districts covered",
+    stat2: "registered sale deeds",
+    stat3: "cities",
+    joinTitle: "Be first to try Nyyf Pro",
+    joinLead: "Price alerts for your districts, instant valuations and broker tools. Leave your details and we'll be in touch.",
+    fName: "Name",
+    fContact: "Mobile or email",
+    fRole: "You are",
+    roles: { broker: "Real estate broker", buyer: "Looking to buy or rent", owner: "Owner or seller", investor: "Investor", developer: "Developer", other: "Other" },
+    fCity: "City",
+    fInterest: "What interests you?",
+    interests: { alerts: "Price alerts", valuation: "Property valuation", broker_tools: "Broker tools", data: "Data and reports", other: "Other" },
+    fConsent: "I agree that Nyyf may contact me about its services and keep my details for that purpose only.",
+    fSubmit: "Send",
+    fSending: "Sending…",
+    fThanks: "Thank you! We got your details and will be in touch soon.",
+    fError: "Could not send. Please try again.",
+    fInvalid: "Enter a valid mobile number or email.",
+    fSoon: "Sign-ups open soon.",
+    privacy: "We never share your details. You can ask us to delete them at any time.",
+    homeTitle: "The real estate market today",
+    homeLead: "Key indicators for each city from registered sales and rental contracts.",
+    kDeals: "Residential sale deeds, last quarter",
+    kValue: "Value of deals, last quarter",
+    kPpm2: "Average price per m²",
+    kRent: "Average yearly rent per m²",
+    trend: "Price per m² by quarter",
+    topPrice: "Most expensive",
+    topActive: "Most active",
+    wkTitle: "Quarterly district report",
+    wkLead: (q: string, vs: string) => `${q} against ${vs}: each district's price per m² over the last two quarters against the same period a year earlier.`,
+    excluded: (n: string) => `${n} left out because the price moved more than 75% in a year, which usually means a different mix of plots (a large raw-land deed or a new project), not a repricing.`,
+    srcRega: "Source: Real Estate Registry deeds (REGA) by property type. Price = total deed value ÷ total area; 20+ deeds needed in each period.",
+    srcMoj: "Source: MOJ residential sales, land, villas and apartments together (the open data does not give the type), bulk batches left out. Price = median; 20+ sales needed in each period.",
+    lowCoverage: (p: string) => `Note: MOJ now records only ${p} of this city's usual sales volume, after registration moved to the Real Estate Registry.`,
+    segAll: "All residential",
+    wkRisers: "Biggest risers",
+    wkStreaks: "Longest rising streaks",
+    wkFallers: "Biggest fallers",
+    wkActive: "Most deals",
+    qtrs: (n: string) => (n === "1" ? "1 quarter" : `${n} quarters`),
+    streakUp: (n: string) => `above last year for ${n} in a row`,
+    streakDown: (n: string) => `below last year for ${n} in a row`,
+    wkBreadth: "Districts rising / falling",
+    wkMedian: "Median district change",
+    vsLastYearShort: "on last year",
+    ins: {
+      top_riser: (d: string, p: string, w: string) => `<b>${d}</b> rose the most: ${p} on last year, and above it for ${w}.`,
+      longest_streak: (d: string, p: string, w: string) => `<b>${d}</b> has the longest run: above last year for ${w} in a row (${p}).`,
+      top_faller: (d: string, p: string, w: string) => `<b>${d}</b> fell the most: ${p} on last year, and below it for ${w}.`,
+      breadth: (up: string, down: string, total: string, med: string) => `Of ${total} districts with enough deals, ${up} rose and ${down} fell; the median change is ${med}.`,
+    },
+    rTitle: "Get the report by email",
+    rLead: "With every new quarter: the biggest risers and fallers and the rising streaks in your city. Free, unsubscribe any time.",
+    rEmail: "Your email",
+    rSubmit: "Subscribe",
+    rThanks: "Done! The report will reach you with every new quarter.",
+    rInvalid: "Enter a valid email address.",
+    rConsent: "I agree to receive Nyyf's report by email.",
+    deeds: "deeds",
+    openMap: "Open on the map",
+    lastQuarter: (q: string) => `Last quarter: ${q}`,
+    vsLastYear: "vs the same quarter last year",
+    medianDistrict: "district median",
+    goSale: "Explore sale prices",
+    goRent: "Explore rents",
+    footer: "Nyyf · open real estate data",
   },
 } as const;
 
 export type Strings = (typeof STRINGS)[Locale];
 
+const tag = (locale: Locale) => (locale === "ar" ? "ar-SA-u-nu-latn" : "en-US");
+
 export function fmtNumber(n: number, locale: Locale, opts: Intl.NumberFormatOptions = {}) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US", { maximumFractionDigits: 0, ...opts }).format(n);
+  return new Intl.NumberFormat(tag(locale), { maximumFractionDigits: 0, ...opts }).format(n);
 }
 
 export function fmtShort(n: number, locale: Locale) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US", {
-    notation: "compact",
-    maximumFractionDigits: n >= 10000 ? 0 : 1,
-  }).format(n);
+  return new Intl.NumberFormat(tag(locale), { notation: "compact", maximumFractionDigits: n >= 10000 ? 0 : 1 }).format(n);
 }
 
 export function fmtPercent(n: number, locale: Locale) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US", {
-    style: "percent",
-    maximumFractionDigits: 0,
-    signDisplay: "exceptZero",
-  }).format(n);
+  return new Intl.NumberFormat(tag(locale), { style: "percent", maximumFractionDigits: 0, signDisplay: "exceptZero" }).format(n);
 }
 
 export function fmtDate(iso: string, locale: Locale) {
@@ -100,4 +291,26 @@ export function fmtDate(iso: string, locale: Locale) {
     day: locale === "ar" ? undefined : "numeric",
     timeZone: "UTC",
   }).format(d);
+}
+
+/** "2025-Q3" -> "الربع 3 2025" / "Q3 2025". */
+export function fmtQuarter(q: string, locale: Locale) {
+  const [y, n] = q.split("-Q");
+  return locale === "ar" ? `الربع ${n} ${y}` : `Q${n} ${y}`;
+}
+
+/** "2024-Q4..2025-Q3" -> a readable window. */
+export function fmtWindow(w: string | null | undefined, locale: Locale) {
+  if (!w) return "";
+  const [a, b] = w.split("..");
+  return `${fmtQuarter(a, locale)} – ${fmtQuarter(b, locale)}`;
+}
+
+/** "14 March" style day and month. */
+export function fmtDay(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(iso + "T00:00:00Z"));
 }

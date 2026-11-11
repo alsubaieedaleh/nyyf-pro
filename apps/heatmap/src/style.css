@@ -86,6 +86,9 @@ body.ready #map {
   color: var(--brand-dark);
   flex: none;
 }
+a.brand {
+  text-decoration: none;
+}
 .brand img {
   border-radius: 8px;
 }
@@ -217,6 +220,58 @@ body.ready #map {
 .chip.on {
   background: var(--ink);
   color: #fff;
+}
+
+/* ---------- Sale / rent and type switches ---------- */
+
+.switches {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  max-width: 720px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.switches::-webkit-scrollbar {
+  display: none;
+}
+.segmented {
+  flex: none;
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.seg {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+  transition: background 180ms, color 180ms;
+}
+.seg.on {
+  background: var(--brand);
+  color: #fff;
+}
+body[data-mode="rent"] .seg.on {
+  background: #3f4f9c;
+}
+.types {
+  display: flex;
+  gap: 6px;
+}
+.chip.type.on {
+  background: var(--brand);
+  color: #fff;
+}
+body[data-mode="rent"] .chip.type.on {
+  background: #3f4f9c;
 }
 
 /* ---------- Tooltip ---------- */
@@ -542,7 +597,85 @@ body.ready #map {
   color: var(--down);
 }
 .actions {
+  display: flex;
+  gap: 8px;
   margin-top: 16px;
+}
+.actions a.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  box-shadow: none;
+  background: #f1f0ec;
+  color: var(--ink);
+  text-decoration: none;
+}
+.stat .k2 {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+h3.sub {
+  margin: 22px 0 8px;
+  font-size: 14px;
+}
+.typegrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.grid-row .gh {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.grid-row .gh small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.cells {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 10px 9px 10px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: #f6f5f1;
+  text-align: start;
+  overflow: hidden;
+}
+.cell .ct {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cell .cv {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cell i {
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.cell.on {
+  border-color: var(--ink);
+  background: #fff;
+}
+.moj {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 .pro {
   display: flex;
@@ -647,6 +780,9 @@ dialog::backdrop {
   .maplibregl-ctrl-bottom-left,
   .maplibregl-ctrl-bottom-right {
     bottom: 150px;
+  }
+  .seg {
+    padding: 0 12px;
   }
 }
 

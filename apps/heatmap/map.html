@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>نيّف · خريطة أسعار الأحياء</title>
+    <meta name="description" content="خريطة مجانية لسعر المتر في أحياء الرياض وجدة ومكة والمدينة والدمام والخبر، من صفقات وزارة العدل المفتوحة." />
+    <meta property="og:title" content="نيّف · خريطة أسعار الأحياء" />
+    <meta property="og:description" content="كم سعر المتر في حيّك؟ خريطة مجانية من صفقات وزارة العدل المفتوحة." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#157d79" />
+    <link rel="icon" href="./icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="map" aria-label="map"></div>
+
+    <header class="top">
+      <div class="bar">
+        <a class="brand" href="./home.html" aria-label="home">
+          <img src="./icon.png" alt="" width="28" height="28" />
+          <span data-i18n="brand"></span>
+        </a>
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 0 1 6.32 12.9l5.39 5.4-1.41 1.4-5.4-5.38A8 8 0 1 1 10 2Zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"/></svg>
+          <input id="search" type="search" autocomplete="off" data-i18n-placeholder="search" />
+          <ul id="results" role="listbox" hidden></ul>
+        </div>
+        <button class="pill lang" id="lang-btn" aria-label="language"></button>
+      </div>
+      <div class="switches">
+        <div class="segmented" id="modes" role="group" aria-label="sale or rent"></div>
+        <div class="types" id="types" role="group" aria-label="property type"></div>
+      </div>
+      <nav class="cities" id="cities" aria-label="cities"></nav>
+    </header>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+
+    <aside class="legend" id="legend" aria-live="polite"></aside>
+
+    <section class="sheet" id="sheet" aria-live="polite" data-state="closed">
+      <div class="grab" id="grab"><span></span></div>
+      <button class="close" id="close" aria-label="close">×</button>
+      <div class="sheet-body" id="sheet-body"></div>
+    </section>
+
+    <dialog id="about">
+      <div class="about-body" id="about-body"></div>
+      <form method="dialog"><button class="pill primary" data-i18n="close"></button></form>
+    </dialog>
+
+    <script type="module" src="./src/map.ts"></script>
+  </body>
+</html>

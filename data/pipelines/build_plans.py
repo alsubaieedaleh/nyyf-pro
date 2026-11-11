@@ -49,7 +49,7 @@ LAND = "قطعة أرض"
 
 
 def single_ppm2(d):
-    if d["count"] != 1 or not (MIN_AREA_M2 <= d["area"] <= MAX_AREA_M2):
+    if d["count"] != 1 or d.get("batch_dup") or not (MIN_AREA_M2 <= d["area"] <= MAX_AREA_M2):
         return None
     ppm2 = d["price"] / d["area"]
     return ppm2 if MIN_PPM2 <= ppm2 <= MAX_PPM2 else None

@@ -5,11 +5,15 @@ import type * as GeoJSON from "geojson";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
-import { STRINGS, fmtDate, fmtNumber, fmtPercent, fmtShort, type Locale } from "./i18n";
+import { STRINGS, fmtDate, fmtNumber, fmtPercent, fmtShort, fmtWindow, type Locale, type Mode } from "./i18n";
+import { $, analytics, esc, getLocale, saveLocale, setDocLocale, toast } from "./common";
 
 // ---------- Types ----------
 
 type Conf = "high" | "medium" | "low" | "none";
+type SaleType = "land" | "villa" | "apartment";
+type RentType = "apartment" | "villa" | "floor";
+type MetricKey = `sale_${SaleType}` | `rent_${RentType}`;
 
 interface District {
   id: string;
@@ -17,19 +21,12 @@ interface District {
   name_ar: string;
   name_en: string;
   ppm2: number | null;
-  low: number | null;
-  high: number | null;
   conf: Conf;
-  conf_score: number;
-  reason_ar: string;
-  reason_en: string;
-  yoy: number | null;
   deals_12m: number;
   last_deal: string | null;
-  rent_m2: number | null;
-  rent_year: number | null;
   lng: number;
   lat: number;
+  [k: string]: unknown;
 }
 
 interface City {
@@ -38,18 +35,15 @@ interface City {
   en: string;
   bounds: [number, number, number, number];
   districts: number;
-  priced: number;
-  high: number;
-  median_ppm2: number | null;
-  breaks: number[];
+  sale_window: string | null;
+  metrics: Record<MetricKey, { breaks: number[]; priced: number; median: number | null }>;
 }
 
 interface Meta {
   data_as_of: string;
-  built_at: string;
+  sale_as_of: string | null;
   cities: City[];
   sources: { id: string; ar: string; en: string; license: string; url: string }[];
-  totals: { districts: number; priced: number; high: number };
 }
 
 type Feature = GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon, District>;
@@ -59,13 +53,19 @@ type Feature = GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon, District>
 maplibregl.setWorkerUrl(workerUrl);
 
 const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/positron";
-const WAITLIST_URL: string | undefined = import.meta.env.VITE_WAITLIST_URL;
-const BEACON_TOKEN: string | undefined = import.meta.env.VITE_CF_BEACON_TOKEN;
 
-// Low (teal) through sand to high (coral). Same hue order as the Nyyf Pro map spec.
-const COLORS = ["#1f9e8f", "#7ccbb0", "#efe2a8", "#f2a46f", "#d9534f"];
+const TYPES: { sale: SaleType[]; rent: RentType[] } = {
+  sale: ["land", "villa", "apartment"],
+  rent: ["apartment", "villa", "floor"],
+};
+
+// Sale: teal (low) through sand to coral (high). Rent: a blue-violet ramp so the two maps never get confused.
+const RAMPS: Record<Mode, string[]> = {
+  sale: ["#1f9e8f", "#7ccbb0", "#efe2a8", "#f2a46f", "#d9534f"],
+  rent: ["#d7e3f4", "#a9c2e6", "#7c9fd6", "#5a76c0", "#3f4f9c"],
+};
 const NO_PRICE = "#c9cac4";
-const CONF_OPACITY: Record<Conf, number> = { high: 0.78, medium: 0.62, low: 0.46, none: 0.32 };
+const CONF_OPACITY: Record<Conf, number> = { high: 0.8, medium: 0.64, low: 0.46, none: 0.3 };
 const DESKTOP = window.matchMedia("(min-width: 820px)");
 const PANEL_W = 400;
 
@@ -76,18 +76,15 @@ const FALLBACK_STYLE: StyleSpecification = {
 };
 
 const expr = (e: unknown) => e as ExpressionSpecification;
-const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---------- State ----------
 
-let locale: Locale = (() => {
-  try {
-    const saved = localStorage.getItem("nyyf-locale");
-    if (saved === "ar" || saved === "en") return saved;
-  } catch {
-    /* storage blocked */
-  }
-  return "ar"; // Arabic first: the audience is Saudi brokers and buyers
+const params = new URLSearchParams(location.search);
+let locale: Locale = getLocale();
+let mode: Mode = params.get("mode") === "rent" ? "rent" : "sale";
+let type: SaleType | RentType = (() => {
+  const t = params.get("type") as SaleType | RentType | null;
+  return t && (TYPES[mode] as string[]).includes(t) ? t : TYPES[mode][0];
 })();
 let meta: Meta;
 let features: Feature[] = [];
@@ -100,6 +97,8 @@ let textFont: string[] | null = null;
 let map: maplibregl.Map;
 
 const t = () => STRINGS[locale];
+const metric = (): MetricKey => `${mode}_${type}` as MetricKey;
+const unit = (m: Mode = mode) => (m === "sale" ? t().sar_m2 : t().sar_m2_year);
 
 // ---------- Helpers ----------
 
@@ -112,12 +111,26 @@ function cityName(slug: string) {
   return c ? (locale === "ar" ? c.ar : c.en) : slug;
 }
 
-function colorFor(d: District) {
-  if (d.ppm2 == null) return NO_PRICE;
-  const breaks = cityBySlug.get(d.city)?.breaks ?? [];
+function val(d: District, key: MetricKey = metric()) {
+  const v = d[key];
+  return typeof v === "number" ? v : null;
+}
+
+function conf(d: District, key: MetricKey = metric()): Conf {
+  return val(d, key) == null ? "none" : ((d[`${key}_conf`] as Conf) ?? "none");
+}
+
+function colorFor(d: District, key: MetricKey = metric()) {
+  const v = val(d, key);
+  if (v == null) return NO_PRICE;
+  const breaks = cityBySlug.get(d.city)?.metrics[key]?.breaks ?? [];
   let i = 0;
-  while (i < breaks.length && d.ppm2 >= breaks[i]) i++;
-  return COLORS[i];
+  while (i < breaks.length && v >= breaks[i]) i++;
+  return RAMPS[key.startsWith("sale") ? "sale" : "rent"][i];
+}
+
+function typeLabel(m: Mode, ty: string) {
+  return (t().types[m] as Record<string, string>)[ty];
 }
 
 function bboxOf(geom: GeoJSON.Polygon | GeoJSON.MultiPolygon): [number, number, number, number] {
@@ -150,10 +163,10 @@ function padding() {
   if (DESKTOP.matches) {
     const side = PANEL_W + 32;
     return locale === "ar"
-      ? { top: 140, bottom: 60, left: 40, right: selectedId ? side : 40 }
-      : { top: 140, bottom: 60, right: 40, left: selectedId ? side : 40 };
+      ? { top: 190, bottom: 60, left: 40, right: selectedId ? side : 40 }
+      : { top: 190, bottom: 60, right: 40, left: selectedId ? side : 40 };
   }
-  return { top: 150, bottom: selectedId ? Math.round(window.innerHeight * 0.48) : 110, left: 24, right: 24 };
+  return { top: 200, bottom: selectedId ? Math.round(window.innerHeight * 0.48) : 120, left: 24, right: 24 };
 }
 
 function normalize(s: string) {
@@ -168,37 +181,29 @@ function normalize(s: string) {
     .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
-function toast(msg: string) {
-  const el = document.createElement("div");
-  el.className = "toast";
-  el.textContent = msg;
-  document.body.append(el);
-  setTimeout(() => el.classList.add("show"), 10);
-  setTimeout(() => {
-    el.classList.remove("show");
-    setTimeout(() => el.remove(), 300);
-  }, 1800);
-}
-
-function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
-
 // ---------- Map style expressions ----------
 
 function fillColor() {
+  const key = metric();
+  const ramp = RAMPS[mode];
   const match: unknown[] = ["match", ["get", "city"]];
   for (const c of meta.cities) {
-    const step: unknown[] = ["step", ["to-number", ["get", "ppm2"]], COLORS[0]];
-    c.breaks.forEach((b, i) => step.push(b, COLORS[i + 1]));
+    const step: unknown[] = ["step", ["to-number", ["get", key]], ramp[0]];
+    (c.metrics[key]?.breaks ?? []).forEach((b, i) => step.push(b, ramp[i + 1]));
     match.push(c.slug, step);
   }
   match.push(NO_PRICE);
-  return expr(["case", ["==", ["get", "ppm2"], null], NO_PRICE, match]);
+  return expr(["case", ["==", ["get", key], null], NO_PRICE, match]);
 }
 
 function fillOpacity() {
-  const base = ["match", ["get", "conf"], "high", CONF_OPACITY.high, "medium", CONF_OPACITY.medium, "low", CONF_OPACITY.low, CONF_OPACITY.none];
+  const key = metric();
+  const base = [
+    "case",
+    ["==", ["get", key], null],
+    CONF_OPACITY.none,
+    ["match", ["get", `${key}_conf`], "high", CONF_OPACITY.high, "medium", CONF_OPACITY.medium, CONF_OPACITY.low],
+  ];
   const hovered = ["boolean", ["feature-state", "hover"], false];
   if (!selectedId) return expr(["case", hovered, 0.9, base]);
   return expr(["case", ["==", ["get", "id"], selectedId], 0.88, hovered, 0.55, 0.22]);
@@ -208,10 +213,10 @@ function labelData(): GeoJSON.FeatureCollection<GeoJSON.Point> {
   return {
     type: "FeatureCollection",
     features: features
-      .filter((f) => f.properties.ppm2 != null)
+      .filter((f) => val(f.properties) != null)
       .map((f) => ({
         type: "Feature",
-        properties: { id: f.properties.id, price: fmtShort(f.properties.ppm2!, locale), name: name(f.properties) },
+        properties: { id: f.properties.id, price: fmtShort(val(f.properties)!, locale), name: name(f.properties) },
         geometry: { type: "Point", coordinates: [f.properties.lng, f.properties.lat] },
       })),
   };
@@ -219,11 +224,7 @@ function labelData(): GeoJSON.FeatureCollection<GeoJSON.Point> {
 
 function addLayers() {
   const before = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
-  map.addSource("districts", {
-    type: "geojson",
-    data: { type: "FeatureCollection", features },
-    promoteId: "id",
-  });
+  map.addSource("districts", { type: "geojson", data: { type: "FeatureCollection", features }, promoteId: "id" });
   map.addLayer(
     {
       id: "district-fill",
@@ -231,6 +232,7 @@ function addLayers() {
       source: "districts",
       paint: {
         "fill-color": fillColor(),
+        "fill-color-transition": { duration: 300 },
         "fill-opacity": fillOpacity(),
         "fill-opacity-transition": { duration: 220 },
       },
@@ -242,11 +244,7 @@ function addLayers() {
       id: "district-line",
       type: "line",
       source: "districts",
-      paint: {
-        "line-color": "#ffffff",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.4, 14, 1.6],
-        "line-opacity": 0.9,
-      },
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.4, 14, 1.6], "line-opacity": 0.9 },
     },
     before,
   );
@@ -254,11 +252,7 @@ function addLayers() {
     id: "district-hover",
     type: "line",
     source: "districts",
-    paint: {
-      "line-color": "#1d2626",
-      "line-width": 1.5,
-      "line-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.55, 0],
-    },
+    paint: { "line-color": "#1d2626", "line-width": 1.5, "line-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.55, 0] },
   });
   map.addLayer({
     id: "district-selected",
@@ -267,7 +261,6 @@ function addLayers() {
     filter: ["==", ["get", "id"], ""],
     paint: { "line-color": "#0f4f4c", "line-width": 2.6 },
   });
-
   if (textFont) {
     map.addSource("labels", { type: "geojson", data: labelData() });
     map.addLayer({
@@ -281,11 +274,26 @@ function addLayers() {
         "text-size": ["interpolate", ["linear"], ["zoom"], 12, 12, 15, 15],
         "text-line-height": 1.15,
         "text-padding": 6,
-        "text-allow-overlap": false,
       },
       paint: { "text-color": "#1d2626", "text-halo-color": "rgba(255,255,255,0.92)", "text-halo-width": 1.6 },
     });
   }
+}
+
+/** Switch sale/rent and property type in place: colours fade, no reload. */
+function setMetric(m: Mode, ty: string) {
+  mode = m;
+  type = (TYPES[m] as string[]).includes(ty) ? (ty as SaleType | RentType) : TYPES[m][0];
+  document.body.dataset.mode = mode;
+  if (map?.getLayer("district-fill")) {
+    map.setPaintProperty("district-fill", "fill-color", fillColor());
+    map.setPaintProperty("district-fill", "fill-opacity", fillOpacity());
+    (map.getSource("labels") as maplibregl.GeoJSONSource | undefined)?.setData(labelData());
+  }
+  renderModes();
+  renderLegend();
+  if (selectedId) renderSheet(byId.get(selectedId)!.properties);
+  writeUrl();
 }
 
 // ---------- Selection ----------
@@ -301,17 +309,12 @@ function select(id: string | null, opts: { fly?: boolean } = {}) {
     renderLegend();
     renderSheet(f.properties);
     if (opts.fly !== false) {
-      map.fitBounds(bboxOf(f.geometry), {
-        padding: padding(),
-        maxZoom: 14,
-        duration: 650,
-        easing: (x) => 1 - Math.pow(1 - x, 3),
-      });
+      map.fitBounds(bboxOf(f.geometry), { padding: padding(), maxZoom: 14, duration: 650, easing: (x) => 1 - Math.pow(1 - x, 3) });
     }
   } else {
     closeSheet();
   }
-  writeHash();
+  writeUrl();
 }
 
 function flyToCity(slug: string, animate = true) {
@@ -320,12 +323,13 @@ function flyToCity(slug: string, animate = true) {
   renderCities();
   renderLegend();
   map.fitBounds(cityView(slug), { padding: padding(), duration: animate ? 900 : 0 });
-  writeHash();
+  writeUrl();
 }
 
-function writeHash() {
+function writeUrl() {
+  const q = `?mode=${mode}&type=${type}`;
   const h = selectedId ? `#${activeCity}/${selectedId}` : `#${activeCity}`;
-  if (location.hash !== h) history.replaceState(null, "", h);
+  if (location.search !== q || location.hash !== h) history.replaceState(null, "", `${location.pathname}${q}${h}`);
 }
 
 function readHash() {
@@ -333,87 +337,111 @@ function readHash() {
   return { city: cityBySlug.has(city) ? city : null, id: id && byId.has(id) ? id : null };
 }
 
-// ---------- UI: cities, legend, sheet ----------
+// ---------- UI ----------
+
+function renderModes() {
+  const s = t();
+  $("modes").innerHTML = (["sale", "rent"] as Mode[])
+    .map((m) => `<button class="seg${m === mode ? " on" : ""}" data-mode="${m}" aria-pressed="${m === mode}">${s.mode[m]}</button>`)
+    .join("");
+  $("types").innerHTML = TYPES[mode]
+    .map((ty) => `<button class="chip type${ty === type ? " on" : ""}" data-type="${ty}" aria-pressed="${ty === type}">${typeLabel(mode, ty)}</button>`)
+    .join("");
+}
 
 function renderCities() {
-  const nav = $("cities");
-  nav.innerHTML = meta.cities
-    .map(
-      (c) =>
-        `<button class="chip${c.slug === activeCity ? " on" : ""}" data-city="${c.slug}">${esc(locale === "ar" ? c.ar : c.en)}</button>`,
-    )
+  $("cities").innerHTML = meta.cities
+    .map((c) => `<button class="chip${c.slug === activeCity ? " on" : ""}" data-city="${c.slug}">${esc(locale === "ar" ? c.ar : c.en)}</button>`)
     .join("");
+}
+
+function asOfText(c?: City) {
+  const s = t();
+  if (mode === "sale") return `${s.asOf} ${fmtWindow(c?.sale_window, locale).split(" – ")[1] ?? ""}`;
+  return `${s.asOf} ${fmtDate(meta.data_as_of, locale)}`;
 }
 
 function renderLegend() {
   const c = cityBySlug.get(activeCity);
   if (!c) return;
   const s = t();
-  const b = c.breaks;
-  const labels = b.map((x) => fmtShort(x, locale));
+  const m = c.metrics[metric()];
+  const labels = (m?.breaks ?? []).map((x) => fmtShort(x, locale));
   $("legend").innerHTML = `
-    <div class="legend-title">${s.legendTitle}${esc(cityName(c.slug))} <span class="unit">${s.sar_m2}</span></div>
-    <div class="ramp">${COLORS.map((col) => `<span style="background:${col}"></span>`).join("")}</div>
+    <div class="legend-title">${s.metricTitle[mode]} · ${typeLabel(mode, type)} · ${esc(cityName(c.slug))} <span class="unit">${unit()}</span></div>
+    <div class="ramp">${RAMPS[mode].map((col) => `<span style="background:${col}"></span>`).join("")}</div>
     <div class="ticks">${labels.map((l) => `<span>${l}</span>`).join("")}</div>
     <div class="legend-foot">
       <span class="nodata"><i></i>${s.legendNone}</span>
       <span class="muted">${s.legendConf}</span>
     </div>
-    <div class="legend-foot">
-      <span class="muted">${esc(s.priced(c.priced, c.districts, c.high))}</span>
-    </div>
-    <button class="asof" id="asof-btn">${s.asOf} ${fmtDate(meta.data_as_of, locale)} · ⓘ</button>`;
+    <div class="legend-foot"><span class="muted">${esc(s.priced(m?.priced ?? 0, c.districts))}</span></div>
+    <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
 }
 
-function confBadge(conf: Conf) {
-  return `<span class="badge c-${conf}"><i></i>${t().conf[conf]}</span>`;
+function confBadge(c: Conf) {
+  return `<span class="badge c-${c}"><i></i>${t().conf[c]}</span>`;
+}
+
+function reason(d: District, key: MetricKey) {
+  const s = t();
+  const n = Number(d[`${key}_n`] ?? 0);
+  if (key.startsWith("sale")) return s.reasonSale(n, fmtWindow(cityBySlug.get(d.city)?.sale_window, locale));
+  return s.reasonRent(n);
 }
 
 function renderSheet(d: District) {
   const s = t();
-  const priced = d.ppm2 != null;
+  const key = metric();
+  const v = val(d);
   const color = colorFor(d);
-  let range = "";
-  if (priced && d.low != null && d.high != null && d.high > d.low) {
-    const lo = Math.min(d.low, d.ppm2!);
-    const hi = Math.max(d.high, d.ppm2!);
-    const pos = hi > lo ? ((d.ppm2! - lo) / (hi - lo)) * 100 : 50;
-    range = `
-      <div class="range">
-        <div class="range-label">${s.range}</div>
-        <div class="range-bar"><span class="dot" style="inset-inline-start:${pos.toFixed(1)}%;background:${color}"></span></div>
-        <div class="range-ends"><span>${fmtNumber(d.low, locale)}</span><span>${fmtNumber(d.high, locale)}</span></div>
-      </div>`;
-  }
   const stats: string[] = [];
-  if (priced && d.yoy != null)
+  const chg = mode === "sale" ? (d[`${key}_chg`] as number | null) : null;
+  if (v != null && chg != null)
     stats.push(
-      `<div class="stat"><div class="k">${s.yoy}</div><div class="v ${d.yoy > 0 ? "up" : d.yoy < 0 ? "down" : ""}">${fmtPercent(d.yoy, locale)}</div></div>`,
+      `<div class="stat"><div class="k">${s.change}</div><div class="v ${chg > 0 ? "up" : chg < 0 ? "down" : ""}">${fmtPercent(chg, locale)}</div><div class="k2">${s.changeNote}</div></div>`,
     );
-  stats.push(`<div class="stat"><div class="k">${s.deals12}</div><div class="v">${fmtNumber(d.deals_12m, locale)}</div></div>`);
-  if (d.last_deal) stats.push(`<div class="stat"><div class="k">${s.lastDeal}</div><div class="v sm">${fmtDate(d.last_deal, locale)}</div></div>`);
-  if (d.rent_m2 != null)
+  if (mode === "rent" && v != null && d[`${key}_year`] != null)
     stats.push(
-      `<div class="stat"><div class="k">${s.rent}</div><div class="v">${fmtNumber(d.rent_m2, locale)} <small>${s.rentUnit}</small></div></div>`,
+      `<div class="stat"><div class="k">${s.yearlyRent} · ${t().typeOne[type as keyof typeof s.typeOne]}</div><div class="v">${fmtNumber(d[`${key}_year`] as number, locale)} <small>${s.sar}</small></div></div>`,
     );
 
-  const pro = WAITLIST_URL
-    ? `<a class="pro" href="${esc(WAITLIST_URL)}" target="_blank" rel="noopener"><span>${s.pro}</span><b>${s.proCta} ${locale === "ar" ? "←" : "→"}</b></a>`
-    : "";
+  // Every type in this district, tappable to switch the map.
+  const rows = (["sale", "rent"] as Mode[])
+    .map((m) => {
+      const cells = (TYPES[m] as string[])
+        .map((ty) => {
+          const k = `${m}_${ty}` as MetricKey;
+          const x = val(d, k);
+          const on = k === key ? " on" : "";
+          return `<button class="cell${on}" data-metric="${m}:${ty}"><span class="ct">${typeLabel(m, ty)}</span><span class="cv">${
+            x != null ? fmtNumber(x, locale) : "—"
+          }</span><i style="background:${colorFor(d, k)}"></i></button>`;
+        })
+        .join("");
+      return `<div class="grid-row"><div class="gh">${s.mode[m]} <small>${unit(m)}</small></div><div class="cells">${cells}</div></div>`;
+    })
+    .join("");
+
+  const moj =
+    typeof d.ppm2 === "number"
+      ? `<p class="moj">${s.mojAll}: <b>${fmtNumber(d.ppm2, locale)}</b> ${s.sar_m2} <span class="muted">· ${s.mojNote(fmtDate(meta.data_as_of, locale))}</span></p>`
+      : "";
 
   $("sheet-body").innerHTML = `
-    <div class="eyebrow">${esc(cityName(d.city))}</div>
+    <div class="eyebrow">${esc(cityName(d.city))} · ${s.metricTitle[mode]} · ${typeLabel(mode, type)}</div>
     <h2>${esc(name(d))}</h2>
     ${
-      priced
-        ? `<div class="price"><span class="swatch" style="background:${color}"></span><b>${fmtNumber(d.ppm2!, locale)}</b> <span class="unit">${s.sar_m2}</span></div>
-           <div class="conf">${confBadge(d.conf)}<span class="reason">${esc(locale === "ar" ? d.reason_ar : d.reason_en)}</span></div>
-           ${range}`
+      v != null
+        ? `<div class="price"><span class="swatch" style="background:${color}"></span><b>${fmtNumber(v, locale)}</b> <span class="unit">${unit()}</span></div>
+           <div class="conf">${confBadge(conf(d))}<span class="reason">${esc(reason(d, key))}</span></div>`
         : `<div class="conf">${confBadge("none")}</div><p class="empty">${s.noPrice}</p>`
     }
-    <div class="stats">${stats.join("")}</div>
-    <div class="actions"><button class="pill primary" id="share-btn">${s.share}</button></div>
-    ${pro}
+    ${stats.length ? `<div class="stats">${stats.join("")}</div>` : ""}
+    <h3 class="sub">${s.allTypes}</h3>
+    <div class="typegrid">${rows}</div>
+    ${moj}
+    <div class="actions"><button class="pill primary" id="share-btn">${s.share}</button><a class="pill" href="./#join">${s.navJoin}</a></div>
     <p class="fine">${s.disclaimer}</p>`;
   openSheet();
 }
@@ -433,9 +461,9 @@ function renderAbout() {
   const s = t();
   $("about-body").innerHTML = `
     <h2>${s.aboutTitle}</h2>
-    <p>${s.aboutLead}</p>
-    <p class="muted">${esc(s.priced(meta.totals.priced, meta.totals.districts, meta.totals.high))} · ${s.asOf} ${fmtDate(meta.data_as_of, locale)}</p>
-    <p>${s.method}</p>
+    <p>${s.methodSale}</p>
+    <p>${s.methodRent}</p>
+    <p>${s.methodConf}</p>
     <h3>${s.sources}</h3>
     <ul>${meta.sources
       .map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(locale === "ar" ? x.ar : x.en)}</a> <span class="muted">(${esc(x.license)})</span></li>`)
@@ -446,8 +474,7 @@ function renderAbout() {
 
 function applyLocale() {
   const s = t();
-  document.documentElement.lang = locale;
-  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  setDocLocale(locale);
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
     el.textContent = (s as Record<string, unknown>)[el.dataset.i18n!] as string;
   });
@@ -456,13 +483,13 @@ function applyLocale() {
   });
   $("lang-btn").textContent = s.lang;
   document.title = locale === "ar" ? "نيّف · خريطة أسعار الأحياء" : "Nyyf · District price map";
+  renderModes();
   renderCities();
   renderLegend();
   renderAbout();
   if (selectedId) renderSheet(byId.get(selectedId)!.properties);
   placeControls();
-  const labels = map?.getSource("labels") as maplibregl.GeoJSONSource | undefined;
-  labels?.setData(labelData());
+  (map?.getSource("labels") as maplibregl.GeoJSONSource | undefined)?.setData(labelData());
 }
 
 // ---------- Search ----------
@@ -483,26 +510,24 @@ function runSearch(q: string) {
     results = [];
     return;
   }
-  const scored = index
-    .map(({ f, keys }) => {
-      const pos = Math.min(...keys.map((k) => (k.indexOf(n) < 0 ? 99 : k.indexOf(n))));
-      return { f, pos };
-    })
+  results = index
+    .map(({ f, keys }) => ({ f, pos: Math.min(...keys.map((k) => (k.indexOf(n) < 0 ? 99 : k.indexOf(n)))) }))
     .filter((x) => x.pos < 99)
     .sort(
       (a, b) =>
         a.pos - b.pos ||
         Number(b.f.properties.city === activeCity) - Number(a.f.properties.city === activeCity) ||
-        (b.f.properties.deals_12m - a.f.properties.deals_12m),
+        b.f.properties.deals_12m - a.f.properties.deals_12m,
     )
-    .slice(0, 8);
-  results = scored.map((x) => x.f);
+    .slice(0, 8)
+    .map((x) => x.f);
   cursor = 0;
   list.innerHTML = results.length
     ? results
         .map((f, i) => {
           const d = f.properties;
-          const price = d.ppm2 != null ? `${fmtNumber(d.ppm2, locale)} ${t().sar_m2}` : t().legendNone;
+          const v = val(d);
+          const price = v != null ? `${fmtNumber(v, locale)} ${unit()}` : t().legendNone;
           return `<li role="option" data-id="${d.id}" class="${i === cursor ? "on" : ""}"><span class="sw" style="background:${colorFor(d)}"></span><span class="nm">${esc(name(d))}<small>${esc(cityName(d.city))}</small></span><span class="pr">${price}</span></li>`;
         })
         .join("")
@@ -526,17 +551,20 @@ function wireUi() {
     const b = (e.target as HTMLElement).closest<HTMLElement>("[data-city]");
     if (b) flyToCity(b.dataset.city!);
   });
+  $("modes").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>("[data-mode]");
+    if (b && b.dataset.mode !== mode) setMetric(b.dataset.mode as Mode, type);
+  });
+  $("types").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>("[data-type]");
+    if (b) setMetric(mode, b.dataset.type!);
+  });
   $("lang-btn").addEventListener("click", () => {
     locale = locale === "ar" ? "en" : "ar";
-    try {
-      localStorage.setItem("nyyf-locale", locale);
-    } catch {
-      /* storage blocked */
-    }
+    saveLocale(locale);
     applyLocale();
   });
   const about = $<HTMLDialogElement>("about");
-  $("about-btn").addEventListener("click", () => about.showModal());
   $("legend").addEventListener("click", (e) => {
     if ((e.target as HTMLElement).closest("#asof-btn")) about.showModal();
   });
@@ -546,14 +574,21 @@ function wireUi() {
   $("close").addEventListener("click", () => select(null));
 
   $("sheet-body").addEventListener("click", async (e) => {
-    if (!(e.target as HTMLElement).closest("#share-btn") || !selectedId) return;
+    const target = e.target as HTMLElement;
+    const cell = target.closest<HTMLElement>("[data-metric]");
+    if (cell) {
+      const [m, ty] = cell.dataset.metric!.split(":");
+      setMetric(m as Mode, ty);
+      return;
+    }
+    if (!target.closest("#share-btn") || !selectedId) return;
     const d = byId.get(selectedId)!.properties;
-    const text = d.ppm2 != null ? `${name(d)}: ${fmtNumber(d.ppm2, locale)} ${t().sar_m2}` : name(d);
-    const url = location.href;
+    const v = val(d);
+    const text = v != null ? `${name(d)} · ${typeLabel(mode, type)}: ${fmtNumber(v, locale)} ${unit()}` : name(d);
     try {
-      if (navigator.share) await navigator.share({ title: name(d), text, url });
+      if (navigator.share) await navigator.share({ title: name(d), text, url: location.href });
       else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
+        await navigator.clipboard.writeText(`${text}\n${location.href}`);
         toast(t().copied);
       }
     } catch {
@@ -571,9 +606,8 @@ function wireUi() {
       if (!results.length) return;
       cursor = (cursor + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length;
       list.querySelectorAll("li").forEach((li, i) => li.classList.toggle("on", i === cursor));
-    } else if (e.key === "Enter") {
-      pickResult(results[cursor]);
-    } else if (e.key === "Escape") {
+    } else if (e.key === "Enter") pickResult(results[cursor]);
+    else if (e.key === "Escape") {
       input.value = "";
       list.hidden = true;
       input.blur();
@@ -635,7 +669,6 @@ function wireUi() {
 function wireMap() {
   const tip = $("tooltip");
   const canHover = window.matchMedia("(hover: hover)").matches;
-
   map.on("mousemove", "district-fill", (e) => {
     const f = e.features?.[0] as MapGeoJSONFeature | undefined;
     if (!f) return;
@@ -648,8 +681,9 @@ function wireMap() {
     map.getCanvas().style.cursor = "pointer";
     if (!canHover) return;
     const d = byId.get(id)!.properties;
-    tip.innerHTML = `<b>${esc(name(d))}</b><span>${
-      d.ppm2 != null ? `${fmtNumber(d.ppm2, locale)} ${t().sar_m2} · ${t().conf[d.conf]}` : t().legendNone
+    const v = val(d);
+    tip.innerHTML = `<b>${esc(name(d))}</b><span>${typeLabel(mode, type)} · ${
+      v != null ? `${fmtNumber(v, locale)} ${unit()} · ${t().conf[conf(d)]}` : t().legendNone
     }</span>`;
     tip.hidden = false;
     tip.style.transform = `translate(${e.point.x + 14}px, ${e.point.y + 14}px)`;
@@ -667,7 +701,6 @@ function wireMap() {
       select(id === selectedId ? null : id);
     } else if (selectedId) select(null);
   });
-  // Keep the legend on the city in view.
   map.on("moveend", () => {
     if (selectedId) return;
     const c = map.getCenter();
@@ -676,7 +709,7 @@ function wireMap() {
       activeCity = inView.slug;
       renderCities();
       renderLegend();
-      writeHash();
+      writeUrl();
     }
   });
 }
@@ -721,14 +754,8 @@ async function loadStyle(): Promise<StyleSpecification> {
 }
 
 async function boot() {
-  if (BEACON_TOKEN) {
-    const s = document.createElement("script");
-    s.defer = true;
-    s.src = "https://static.cloudflareinsights.com/beacon.min.js";
-    s.dataset.cfBeacon = JSON.stringify({ token: BEACON_TOKEN });
-    document.head.append(s);
-  }
-
+  analytics();
+  document.body.dataset.mode = mode;
   const [style, m, geo] = await Promise.all([
     loadStyle(),
     fetch("./data/meta.json").then((r) => r.json() as Promise<Meta>),
@@ -741,7 +768,8 @@ async function boot() {
   buildIndex();
 
   const fromHash = readHash();
-  activeCity = fromHash.id ? byId.get(fromHash.id)!.properties.city : fromHash.city ?? "riyadh";
+  activeCity = fromHash.id ? byId.get(fromHash.id)!.properties.city : (params.get("city") ?? fromHash.city ?? "riyadh");
+  if (!cityBySlug.has(activeCity)) activeCity = "riyadh";
 
   map = new maplibregl.Map({
     container: "map",
@@ -766,7 +794,7 @@ async function boot() {
     wireMap();
     document.body.classList.add("ready");
     if (fromHash.id) select(fromHash.id);
-    else writeHash();
+    else writeUrl();
   });
 }
 

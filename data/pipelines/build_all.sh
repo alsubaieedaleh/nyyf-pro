@@ -9,26 +9,21 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 rm -f apps/web/public/data/market-meta.json
 
-# slug | city (National Address spelling) | English name | REGA rental file region
+# Every city in cities.json (slug, National Address spelling, English name, REGA rental file region).
+python3 -c 'import json,sys; [print("|".join((c["slug"], c["ar"], c["en"], c["rent_region"]))) for c in json.load(open(sys.argv[1]))]' \
+  data/pipelines/cities.json > "${TMPDIR:-/tmp}/nyyf-cities.txt"
 while IFS='|' read -r slug city city_en region; do
   python3 data/pipelines/build_moj_market.py --moj "$MOJ_REPO/moj/sales" \
     --districts "$BOUNDARIES/geojson/districts.geojson" --city "$city" --city-en "$city_en" --slug "$slug"
   python3 data/pipelines/build_rega_rent.py --rent "$MOJ_REPO/rega/quarterlies/rental" \
     --region "$region" --city "$city" --slug "$slug"
-done <<'CITIES'
-riyadh|الرياض|Riyadh|Riyadh
-jeddah|جدة|Jeddah|Makkah
-makkah|مكة المكرمة|Makkah|Makkah
-madinah|المدينة المنورة|Madinah|Madinah
-dammam|الدمام|Dammam|EP
-khobar|الخبر|Al Khobar|EP
-CITIES
+done < "${TMPDIR:-/tmp}/nyyf-cities.txt"
 
 if [ -n "${OLD_NYYF:-}" ]; then
   python3 data/pipelines/build_riyadh_offers.py "$OLD_NYYF/Web/muqayyim/src/assets"
 fi
 
 # Plans need the district prices (and, for Riyadh, the offers) built above.
-for c in riyadh:الرياض jeddah:جدة makkah:"مكة المكرمة" madinah:"المدينة المنورة" dammam:الدمام khobar:الخبر; do
-  python3 data/pipelines/build_plans.py --moj "$MOJ_REPO/moj/sales" --slug "${c%%:*}" --city "${c#*:}"
-done
+while IFS='|' read -r slug city _ _; do
+  python3 data/pipelines/build_plans.py --moj "$MOJ_REPO/moj/sales" --slug "$slug" --city "$city"
+done < "${TMPDIR:-/tmp}/nyyf-cities.txt"

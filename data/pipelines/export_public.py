@@ -350,6 +350,7 @@ def build(final_dir, base_dir):
         },
     }
     market = build_market(base_dir, by_city, cities)
+    market["data_as_of"] = as_of
     return {"type": "FeatureCollection", "features": features}, meta, market, problems
 
 

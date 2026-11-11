@@ -1,6 +1,6 @@
 {
  "data_as_of": "2026-03-31",
- "built_at": "2026-11-11T08:10Z",
+ "built_at": "2026-11-11T09:01Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_land": {
@@ -519,66 +519,66 @@
       140
      ],
      "priced": 99,
-     "median": 126
+     "median": 125
     },
     "rent_villa": {
      "breaks": [
       110,
-      140,
+      145,
       160,
-      195
+      185
      ],
-     "priced": 45,
-     "median": 146
+     "priced": 41,
+     "median": 150
     },
     "rent_floor": {
      "breaks": [
       95,
-      105,
+      110,
       125,
-      145
+      150
      ],
-     "priced": 63,
-     "median": 115
+     "priced": 61,
+     "median": 120
     },
     "rent_studio": {
      "breaks": [
-      170,
+      180,
       230,
       280,
-      320
+      350
      ],
-     "priced": 63,
-     "median": 251
+     "priced": 60,
+     "median": 252
     },
     "rent_apartment_year": {
      "breaks": [
       15750,
       16750,
-      18000,
+      18250,
       19000
      ],
      "priced": 99,
-     "median": 17375
+     "median": 17413
     },
     "rent_villa_year": {
      "breaks": [
-      32500,
-      42500,
+      35000,
+      45000,
       50000,
       60000
      ],
-     "priced": 45,
-     "median": 45733
+     "priced": 41,
+     "median": 47918
     },
     "rent_floor_year": {
      "breaks": [
-      17000,
-      22000,
-      26000,
-      29000
+      18000,
+      23000,
+      27000,
+      30000
      ],
-     "priced": 63,
+     "priced": 61,
      "median": 23846
     },
     "rent_studio_year": {
@@ -586,10 +586,10 @@
       10500,
       12000,
       13500,
-      15500
+      15250
      ],
-     "priced": 63,
-     "median": 12375
+     "priced": 60,
+     "median": 12760
     }
    }
   },
@@ -887,7 +887,7 @@
    ],
    "sale_window": "2025-Q1..2025-Q2",
    "match": 0.654,
-   "rent_window": null,
+   "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
     "sale_land": {
      "breaks": [
@@ -1018,7 +1018,7 @@
    ],
    "sale_window": "2025-Q1..2025-Q2",
    "match": 0.852,
-   "rent_window": null,
+   "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
     "sale_land": {
      "breaks": [

@@ -374,6 +374,26 @@ button {
 .home-head {
   padding: 40px 0 8px;
 }
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fff6e5;
+  color: #5c4300;
+  font-size: 13px;
+}
+.dates b {
+  margin-inline-end: 4px;
+}
+.dates span + span::before {
+  content: "·";
+  margin-inline-end: 8px;
+  color: #b08a3a;
+}
 .home-head h1 {
   margin: 0 0 8px;
   font-size: clamp(26px, 3.6vw, 38px);

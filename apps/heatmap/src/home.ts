@@ -1,5 +1,5 @@
 import "./pages.css";
-import { STRINGS, fmtNumber, fmtPercent, fmtQuarter, fmtShort, fmtWindow, type Locale } from "./i18n";
+import { STRINGS, fmtDate, fmtNumber, fmtPercent, fmtQuarter, fmtShort, fmtWindow, type Locale } from "./i18n";
 import { $, CITY_NAMES, CITY_SLUGS, analytics, esc, getLocale, renderLeadForm, renderReportForm, renderNav, saveLocale, setDocLocale } from "./common";
 
 type SaleType = "land" | "villa" | "apartment";
@@ -27,6 +27,7 @@ interface CityMarket {
   top_active: Record<SaleType, Top[]>;
 }
 interface Market {
+  data_as_of?: string;
   cities: Record<string, CityMarket>;
 }
 interface RDistrict {
@@ -217,6 +218,21 @@ function reportSection(rc: RCity) {
     </section>`;
 }
 
+/** Every source's date for the chosen city, up top, so no number is read without its age. */
+function dates() {
+  const s = t();
+  const c = market?.cities[city];
+  if (!c) return "";
+  const rc = report?.cities[city];
+  const items = [
+    market?.data_as_of ? s.dateMoj(fmtDate(market.data_as_of, locale)) : "",
+    c.sale_window ? s.dateRega(fmtQuarter(c.sale_window.split("..")[1], locale)) : "",
+    c.rent_window ? s.dateRent(fmtWindow(c.rent_window, locale)) : "",
+    rc ? s.dateReport(fmtQuarter(rc.quarter, locale)) : "",
+  ].filter(Boolean);
+  return `<div class="dates"><b>${s.datesTitle}</b>${items.map((x) => `<span>${esc(x)}</span>`).join("")}</div>`;
+}
+
 function render() {
   const s = t();
   setDocLocale(locale);
@@ -300,6 +316,7 @@ function render() {
       <h1>${s.homeTitle}</h1>
       <p class="lead">${s.homeLead}</p>
       <div class="chips" id="city-chips">${chips}</div>
+      ${dates()}
     </section>
     ${body}
     <section class="join compact" id="join">

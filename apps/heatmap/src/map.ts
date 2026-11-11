@@ -5,7 +5,7 @@ import type * as GeoJSON from "geojson";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
-import { STRINGS, fmtDate, fmtNumber, fmtPercent, fmtShort, fmtWindow, type Locale, type Mode } from "./i18n";
+import { STRINGS, fmtDate, fmtNumber, fmtPercent, fmtQuarter, fmtShort, fmtWindow, type Locale, type Mode } from "./i18n";
 import { $, analytics, esc, getLocale, saveLocale, setDocLocale, toast } from "./common";
 
 // ---------- Types ----------
@@ -425,6 +425,13 @@ function renderLegend() {
     ${mode === "rent" && c.slug === "riyadh" ? `<div class="legend-note">${s.riyadhFreeze}</div>` : ""}
     ${mode === "sale" && monthsOld(c.sale_window) > 12 ? `<div class="legend-note warn">${s.saleOld(fmtNumber(monthsOld(c.sale_window), locale))}</div>` : ""}
     <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
+  // The data date sits under the city chips too, where nobody can miss it.
+  const old = mode === "sale" ? monthsOld(c.sale_window) : monthsOld(rentWindow(c));
+  const pill = $("asof-pill");
+  pill.className = `asof-pill${old > 12 ? " warn" : ""}`;
+  pill.innerHTML = `<i></i>${esc(mode === "sale" ? (c.sale_window ? s.pillSale(fmtQuarter(c.sale_window.split("..")[1], locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)) : (rentWindow(c) ? s.pillRent(fmtWindow(rentWindow(c), locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)))}${
+    old > 6 ? ` · ${esc(s.pillAge(fmtNumber(old, locale)))}` : ""
+  }`;
   // The zoom buttons sit just above the legend, whose height changes with its notes (and with web fonts).
   legendObserver ??= new ResizeObserver(() =>
     document.documentElement.style.setProperty("--legend-h", `${$("legend").offsetHeight}px`),
@@ -634,6 +641,7 @@ function wireUi() {
     if (e.target === about) about.close();
   });
   $("close").addEventListener("click", () => select(null));
+  $("asof-pill").addEventListener("click", () => about.showModal());
 
   $("sheet-body").addEventListener("click", async (e) => {
     const target = e.target as HTMLElement;

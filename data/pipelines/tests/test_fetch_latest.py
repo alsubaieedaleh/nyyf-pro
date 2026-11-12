@@ -144,3 +144,18 @@ class ReportWindowTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AuditRulesTest(unittest.TestCase):
+    def test_labels_need_enough_deals(self):
+        import build_final
+        self.assertEqual(build_final.confidence(7, 0.1, 3, 100)[1], "low")  # tight and recent, but 7 sales
+        self.assertEqual(build_final.confidence(12, 0.1, 3, 100)[1], "medium")
+        self.assertEqual(build_final.confidence(150, 0.1, 3, 100)[1], "high")
+
+    def test_yoy_note_only_when_windows_differ(self):
+        import export_public
+        self.assertEqual(export_public.yoy_note({"months_now": 12, "months_before": 12}), ("", ""))
+        en, ar = export_public.yoy_note({"months_now": 12, "months_before": 9, "missing": ["2025-Q2"]})
+        self.assertIn("12 months with 9", en)
+        self.assertIn("2025-Q2", ar)

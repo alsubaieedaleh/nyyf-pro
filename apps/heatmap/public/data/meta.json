@@ -1,6 +1,13 @@
 {
  "data_as_of": "2026-09-30",
- "built_at": "2026-11-12T06:53Z",
+ "yoy_basis": {
+  "months_now": 12,
+  "months_before": 9,
+  "missing": [
+   "2025-Q2"
+  ]
+ },
+ "built_at": "2026-11-12T07:12Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_land": {
@@ -333,7 +340,7 @@
    ],
    "districts": 68,
    "priced": 49,
-   "high": 23,
+   "high": 19,
    "median_ppm2": 2381,
    "breaks": [
     1300,
@@ -1156,6 +1163,6 @@
  "totals": {
   "districts": 812,
   "priced": 586,
-  "high": 39
+  "high": 35
  }
 }

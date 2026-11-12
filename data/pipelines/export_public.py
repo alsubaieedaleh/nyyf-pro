@@ -123,6 +123,16 @@ def round_coords(obj):
     return obj
 
 
+def yoy_note(basis: dict) -> tuple[str, str]:
+    """A suffix for the reason when the year-on-year change compares windows of different length."""
+    now, before = basis.get("months_now", 12), basis.get("months_before", 12)
+    if now == 12 and before == 12:
+        return "", ""
+    missing = ", ".join(basis.get("missing", []))
+    return (f"; year-on-year compares {now} months with {before} ({missing} has no MOJ data)",
+            f"؛ التغير السنوي يقارن {now} شهرًا بـ {before} أشهر (لا تتوفر بيانات وزارة العدل للفترة {missing})")
+
+
 def reason_ar(basis, deals):
     """The confidence reason in Arabic, from the price basis and the number of deals behind it."""
     if basis == "district_sold_residential_12m":
@@ -232,6 +242,9 @@ def build(final_dir, base_dir):
     for r in read_csv(base_dir / "sales_by_type.csv"):
         windows[r["city"]] = r["window"]
     src = json.loads((final_dir / "price_index.geojson").read_text(encoding="utf-8"))
+    yb_path = final_dir / "yoy_basis.json"
+    yoy_basis = json.loads(yb_path.read_text(encoding="utf-8")) if yb_path.exists() else {}
+    yoy_en, yoy_ar = yoy_note(yoy_basis)
     features, by_city, problems = [], {c[0]: [] for c in CITIES}, []
     as_of = None
     for f in src["features"]:
@@ -250,6 +263,7 @@ def build(final_dir, base_dir):
         if ppm2 is not None and low is not None and low > ppm2:
             problems.append(f"{p['unit_id']}: low {low} above price {ppm2}")
         deals_basis = num(p.get("deals_basis")) or 0
+        yoy = num(p.get("yoy_change"), 3) if ppm2 is not None else None
         geom = shape(f["geometry"]).simplify(SIMPLIFY_DEG, preserve_topology=True)
         props = {
             "id": str(p.get("district_id") or p["unit_id"]),
@@ -261,9 +275,9 @@ def build(final_dir, base_dir):
             "high": high if ppm2 is not None else None,
             "conf": conf,
             "conf_score": num(p.get("confidence_score")) or 0,
-            "reason_en": p.get("confidence_reason") or "",
-            "reason_ar": reason_ar(p.get("price_basis"), deals_basis),
-            "yoy": num(p.get("yoy_change"), 3) if ppm2 is not None else None,
+            "reason_en": (p.get("confidence_reason") or "") + (yoy_en if yoy is not None else ""),
+            "reason_ar": reason_ar(p.get("price_basis"), deals_basis) + (yoy_ar if yoy is not None else ""),
+            "yoy": yoy,
             "deals_12m": num(p.get("deals_12m")) or 0,
             "value_12m": num(p.get("value_12m_sar")) or 0,
             "last_deal": p.get("last_deal") or None,
@@ -338,6 +352,7 @@ def build(final_dir, base_dir):
 
     meta = {
         "data_as_of": as_of,
+        "yoy_basis": yoy_basis or None,
         "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         "sale_as_of": max((w.split("..")[-1] for w in windows.values()), default=None),
         "metrics": {k: {"mode": m, "type": t} for k, (m, t) in METRICS.items()},

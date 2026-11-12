@@ -49,6 +49,7 @@ MAX_MOVE = 0.75
 MAX_COUNT_RATIO = 3  # the two windows' deal counts must be within this factor
 MIN_MOJ_MATCH = 0.6  # share of a city's MOJ deals matched to a district before MOJ can be its source
 MAX_GAP = 2  # quarters the registry may lag MOJ and still be the source
+LOW_COVERAGE = 0.5  # below this MOJ is not a usable sample at all (Riyadh since the registry move)
 MIN_COVERAGE = 0.75  # below this share of its usual volume, MOJ is not a fair sample of a city
 # Pick: the preferred source when it compares 15+ districts, else the one that compares the most (5+ needed).
 TOP = 8
@@ -288,13 +289,17 @@ def main():
         rega_qs = {q for t in rega.get(slug, {}).values() for qs in t.values() for q in qs}
         rega_q = max(rega_qs, key=qnum) if rega_qs else None
         candidates = []
+        # MOJ is the preferred source when it holds its usual volume, or when it is still a usable sample (the same
+        # 0.5 tier build_final caps confidence at) and is more than MAX_GAP quarters newer than the registry.
+        gap = qnum(moj_q) - qnum(rega_q) if moj_q and rega_q else None
+        moj_preferred = bool(moj_q) and (cov >= MIN_COVERAGE or (cov >= LOW_COVERAGE and (gap is None or gap > MAX_GAP)))
         if rega_q:
-            rega_ok = cov < MIN_COVERAGE or not moj_q or qnum(moj_q) - qnum(rega_q) <= MAX_GAP
+            rega_ok = not moj_preferred and (cov < MIN_COVERAGE or not moj_q or gap <= MAX_GAP)
             candidates.append(("rega", rega_q, rega_ok))
         recent = [q for q in volume.get(slug, {}) if moj_q and qnum(moj_q) - 4 < qnum(q) <= qnum(moj_q)]
         moj_match = sum(matched[slug][q] for q in recent) / max(1, sum(volume[slug][q] for q in recent))
         if moj_q and moj_match >= MIN_MOJ_MATCH:
-            candidates.append(("moj", moj_q, cov >= MIN_COVERAGE))
+            candidates.append(("moj", moj_q, moj_preferred))
         built = []
         for source, latest, preferred in candidates:
             if source == "rega":

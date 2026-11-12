@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  actions: read # to download the portal files the Saudi runner uploaded
 
 concurrency:
   group: heatmap-data
@@ -53,6 +54,22 @@ jobs:
           fetch_pinned "$(jq -r .mirror.repo $lock)" "$(jq -r .mirror.commit $lock)" "$RUNNER_TEMP/moj"
           fetch_pinned "$(jq -r .boundaries.repo $lock)" "$(jq -r .boundaries.commit $lock)" "$RUNNER_TEMP/boundaries"
           echo "MOJ mirror at $(git -C "$RUNNER_TEMP/moj" log -1 --format='%h %cs')"
+
+      # Official portal files come from the Saudi self-hosted runner (open-data-portal.yml), since the portal
+      # blocks GitHub's runners. No run in the last 8 days (runner offline): the build uses the mirror, as before.
+      - name: Lay the official portal files over the mirror (from the Saudi runner)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh run list --workflow open-data-portal.yml --status success --limit 1 --json databaseId,createdAt \
+                  --jq '.[0] | select(.createdAt > (now - 8*86400 | todate)) | .databaseId')
+          if [ -z "$run" ]; then
+            echo "### Official portal files: none fetched in the last 8 days, mirror only" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh run download "$run" --name portal-overlay --dir "$RUNNER_TEMP/portal-overlay"
+          python data/pipelines/portal_overlay.py apply --overlay "$RUNNER_TEMP/portal-overlay" --tree "$RUNNER_TEMP/moj"
 
       - uses: actions/cache@v4
         with:

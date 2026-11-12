@@ -1,0 +1,59 @@
+# Weekly download of the official MOJ and REGA files from the Saudi Open Data Portal (open.data.gov.sa).
+#
+# The portal resets connections from outside Saudi Arabia, so GitHub's own runners cannot reach it. This job runs on
+# a self-hosted runner with a Saudi IP (labels: self-hosted, saudi), checks every portal file with
+# fetch_open_data.py (quarter dates, duplicates, completeness), and uploads only the files that are new or replace
+# the mirror's as the artifact "portal-overlay". heatmap-data.yml lays the newest one (up to 8 days old) over the
+# mirror three hours later. If the runner is offline this run just waits and expires; the Sunday build then goes
+# ahead on the mirror and the pinned sources, as before.
+#
+# Triggers are schedule and manual only, never pull_request, so code from forks never runs on the Saudi machine.
+# Commands are plain "python ..." so they run the same in PowerShell (Windows runner) and bash (Linux VPS).
+name: Open Data Portal fetch (Saudi runner)
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Sundays 03:00 Riyadh time, three hours before the heat map refresh
+  workflow_dispatch:
+    inputs:
+      accept_partial:
+        description: "Take MOJ and rental quarters flagged partial (check their ratio in the last report first)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: open-data-portal
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: [self-hosted, saudi]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Portal reachable from this runner?
+        run: python data/pipelines/fetch_open_data.py --check
+
+      # Kept outside the checkout (runner.workspace is its parent), so it is fetched once, not every week.
+      - name: Mirror at the pinned commit (fallback and duplicate check)
+        run: python data/pipelines/portal_overlay.py mirror --dest "${{ runner.workspace }}/nyyf-mirror"
+
+      - name: Fetch and check the portal files (rate-limited, 2 s between requests)
+        run: >
+          python data/pipelines/fetch_open_data.py --delay 2
+          --mirror "${{ runner.workspace }}/nyyf-mirror" --out "${{ runner.temp }}/open-tree"
+          ${{ inputs.accept_partial && '--accept-partial' || '' }}
+
+      - name: Pack only what the mirror lacks
+        run: python data/pipelines/portal_overlay.py pack --tree "${{ runner.temp }}/open-tree" --out "${{ runner.temp }}/portal-overlay"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portal-overlay
+          path: ${{ runner.temp }}/portal-overlay
+          retention-days: 35
+          if-no-files-found: error

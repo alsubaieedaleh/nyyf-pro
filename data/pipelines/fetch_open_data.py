@@ -38,7 +38,8 @@ a small VPS in a Saudi region or a self-hosted GitHub runner. For example, every
   0 5 * * 0  cd nyyf-pro && python3 data/pipelines/fetch_open_data.py \
                --mirror ~/saudi-real-estate-data --out ~/nyyf-open-data >> ~/fetch.log 2>&1
 
-It is not part of the weekly workflow yet.
+In GitHub Actions it runs weekly on such a self-hosted runner (.github/workflows/open-data-portal.yml), and
+heatmap-data.yml lays its files over the mirror (portal_overlay.py).
 
 Usage:
   python data/pipelines/fetch_open_data.py --mirror <mirror clone> --out <dir> [--delay 2] [--check]

@@ -11,7 +11,7 @@ import { $, analytics, esc, getLocale, saveLocale, setDocLocale, toast } from ".
 // ---------- Types ----------
 
 type Conf = "high" | "medium" | "low" | "none";
-type SaleType = "land" | "villa" | "apartment";
+type SaleType = "all" | "land" | "villa" | "apartment";
 type RentType = "apartment" | "villa" | "floor" | "studio";
 /** Rent comes per m² a year (`rent_x`) or per unit a year (`rent_x_year`, the average contract). */
 type RentUnit = "unit" | "m2";
@@ -38,6 +38,8 @@ interface City {
   bounds: [number, number, number, number];
   districts: number;
   sale_window: string | null;
+  /** The MOJ 12-month window behind sale_all (every residential deal, to the newest MOJ month). */
+  sale_all_window?: string | null;
   rent_window?: string | null;
   match?: number | null;
   metrics: Record<MetricKey, { breaks: number[]; priced: number; median: number | null }>;
@@ -59,7 +61,7 @@ maplibregl.setWorkerUrl(workerUrl);
 const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/positron";
 
 const TYPES: { sale: SaleType[]; rent: RentType[] } = {
-  sale: ["land", "villa", "apartment"],
+  sale: ["all", "land", "villa", "apartment"],
   rent: ["apartment", "studio", "villa", "floor"],
 };
 
@@ -381,6 +383,11 @@ function rentWindow(c?: City) {
   return c?.rent_window ?? meta.cities.find((x) => x.rent_window)?.rent_window ?? null;
 }
 
+/** The quarters behind the sale prices on the map: MOJ deals for "all", REGA deeds for a property type. */
+function saleWindow(c?: City) {
+  return (type === "all" ? c?.sale_all_window : c?.sale_window) ?? null;
+}
+
 /** Months from the end of a "2024-Q3..2025-Q2" window to today. */
 function monthsOld(window?: string | null) {
   const q = window?.split("..").pop();
@@ -391,7 +398,7 @@ function monthsOld(window?: string | null) {
 
 function asOfText(c?: City) {
   const s = t();
-  if (mode === "sale") return `${s.asOf} ${fmtWindow(c?.sale_window, locale).split(" – ")[1] ?? ""}`;
+  if (mode === "sale") return `${s.asOf} ${fmtWindow(saleWindow(c), locale).split(" – ")[1] ?? ""}`;
   const rw = rentWindow(c);
   return rw ? `${s.periodRent} ${fmtWindow(rw, locale)}` : `${s.asOf} ${fmtDate(meta.data_as_of, locale)}`;
 }
@@ -423,13 +430,14 @@ function renderLegend() {
     ${mode === "sale" && c.match != null && c.match < 0.85 ? `<div class="legend-foot"><span class="muted">${esc(s.matchNote(fmtPercent(c.match, locale).replace(/^[+\u200e]+/, "")))}</span></div>` : ""}
     ${mode === "rent" && rentUnit === "unit" ? `<div class="legend-foot"><span class="muted">${s.unitNote}</span></div>` : ""}
     ${mode === "rent" && c.slug === "riyadh" ? `<div class="legend-note">${s.riyadhFreeze}</div>` : ""}
-    ${mode === "sale" && monthsOld(c.sale_window) > 12 ? `<div class="legend-note warn">${s.saleOld(fmtNumber(monthsOld(c.sale_window), locale))}</div>` : ""}
+    ${mode === "sale" && type === "all" ? `<div class="legend-foot"><span class="muted">${s.allNote}</span></div>` : ""}
+    ${mode === "sale" && monthsOld(saleWindow(c)) > 12 ? `<div class="legend-note warn">${s.saleOld(fmtNumber(monthsOld(saleWindow(c)), locale))}</div>` : ""}
     <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
   // The data date sits under the city chips too, where nobody can miss it.
-  const old = mode === "sale" ? monthsOld(c.sale_window) : monthsOld(rentWindow(c));
+  const old = mode === "sale" ? monthsOld(saleWindow(c)) : monthsOld(rentWindow(c));
   const pill = $("asof-pill");
   pill.className = `asof-pill${old > 12 ? " warn" : ""}`;
-  pill.innerHTML = `<i></i>${esc(mode === "sale" ? (c.sale_window ? s.pillSale(fmtQuarter(c.sale_window.split("..")[1], locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)) : (rentWindow(c) ? s.pillRent(fmtWindow(rentWindow(c), locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)))}${
+  pill.innerHTML = `<i></i>${esc(mode === "sale" ? (saleWindow(c) ? s.pillSale(fmtQuarter(saleWindow(c)!.split("..")[1], locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)) : (rentWindow(c) ? s.pillRent(fmtWindow(rentWindow(c), locale)) : s.asOf + " " + fmtDate(meta.data_as_of, locale)))}${
     old > 6 ? ` · ${esc(s.pillAge(fmtNumber(old, locale)))}` : ""
   }`;
   // The zoom buttons sit just above the legend, whose height changes with its notes (and with web fonts).
@@ -446,6 +454,7 @@ function confBadge(c: Conf) {
 function reason(d: District, key: MetricKey) {
   const s = t();
   const n = Number(d[`${baseKey(key)}_n`] ?? 0);
+  if (key === "sale_all") return s.reasonAll(n, fmtWindow(cityBySlug.get(d.city)?.sale_all_window, locale));
   if (key.startsWith("sale")) return s.reasonSale(n, fmtWindow(cityBySlug.get(d.city)?.sale_window, locale));
   return s.reasonRent(n, fmtWindow(rentWindow(cityBySlug.get(d.city)), locale));
 }
@@ -488,7 +497,7 @@ function renderSheet(d: District) {
     .join("");
 
   const moj =
-    typeof d.ppm2 === "number"
+    typeof d.ppm2 === "number" && !(mode === "sale" && type === "all")
       ? `<p class="moj">${s.mojAll}: <b>${fmtNumber(d.ppm2, locale)}</b> ${s.sar_m2} <span class="muted">· ${s.mojNote(fmtDate(meta.data_as_of, locale))}</span></p>`
       : "";
 

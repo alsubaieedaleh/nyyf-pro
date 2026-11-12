@@ -7,9 +7,13 @@
    "2025-Q2"
   ]
  },
- "built_at": "2026-11-12T07:12Z",
+ "built_at": "2026-11-12T08:27Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
+  "sale_all": {
+   "mode": "sale",
+   "type": "all"
+  },
   "sale_land": {
    "mode": "sale",
    "type": "land"
@@ -77,9 +81,20 @@
     7500
    ],
    "sale_window": "2024-Q3..2025-Q2",
+   "sale_all_window": "2025-Q3..2026-Q2",
    "match": 0.989,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      2000,
+      3000,
+      4500,
+      7500
+     ],
+     "priced": 147,
+     "median": 3902
+    },
     "sale_land": {
      "breaks": [
       1750,
@@ -213,9 +228,20 @@
     4000
    ],
    "sale_window": "2024-Q3..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.899,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      1250,
+      2250,
+      3250,
+      4000
+     ],
+     "priced": 109,
+     "median": 2981
+    },
     "sale_land": {
      "breaks": [
       1250,
@@ -349,9 +375,20 @@
     3000
    ],
    "sale_window": "2024-Q3..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.666,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      1300,
+      2000,
+      2600,
+      3000
+     ],
+     "priced": 49,
+     "median": 2381
+    },
     "sale_land": {
      "breaks": [
       1100,
@@ -485,9 +522,20 @@
     3500
    ],
    "sale_window": "2024-Q1..2024-Q4",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.984,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      1000,
+      1500,
+      2500,
+      3500
+     ],
+     "priced": 85,
+     "median": 2000
+    },
     "sale_land": {
      "breaks": [
       1000,
@@ -621,9 +669,20 @@
     3100
    ],
    "sale_window": "2024-Q3..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.928,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      1900,
+      2100,
+      2500,
+      3100
+     ],
+     "priced": 60,
+     "median": 2368
+    },
     "sale_land": {
      "breaks": [
       1500,
@@ -757,9 +816,20 @@
     4500
    ],
    "sale_window": "2025-Q1..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.676,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      1250,
+      3000,
+      3500,
+      4500
+     ],
+     "priced": 38,
+     "median": 3359
+    },
     "sale_land": {
      "breaks": [
       1750,
@@ -893,9 +963,20 @@
     1600
    ],
    "sale_window": "2025-Q1..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.654,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      900,
+      1200,
+      1350,
+      1600
+     ],
+     "priced": 68,
+     "median": 1291
+    },
     "sale_land": {
      "breaks": [
       1000,
@@ -1024,9 +1105,20 @@
     575
    ],
    "sale_window": "2025-Q1..2025-Q2",
+   "sale_all_window": "2025-Q4..2026-Q3",
    "match": 0.852,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
+    "sale_all": {
+     "breaks": [
+      275,
+      375,
+      450,
+      575
+     ],
+     "priced": 30,
+     "median": 397
+    },
     "sale_land": {
      "breaks": [
       400,

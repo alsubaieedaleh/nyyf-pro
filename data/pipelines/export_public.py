@@ -46,8 +46,11 @@ CITIES = [(c["slug"], c["ar"], c["en"]) for c in CITY_LIST]
 MIN_CONFIDENT = 15  # districts with a high or medium confidence price needed to publish a city
 MIN_MATCH = 0.6  # share of a city's registry deeds that must match a district polygon
 
-# Map metrics: key -> (mode, type). Sale types come from REGA registry deeds, rents from Ejar contracts.
+# Map metrics: key -> (mode, type). sale_all is the MOJ price over every residential deal (land, villas and
+# apartments together, to the newest MOJ month); the other sale types come from REGA registry deeds, which the free
+# sources publish later. Rents come from Ejar contracts.
 METRICS = {
+    "sale_all": ("sale", "all"),
     "sale_land": ("sale", "land"),
     "sale_villa": ("sale", "villa"),
     "sale_apartment": ("sale", "apartment"),
@@ -175,6 +178,15 @@ def rent_window(quarters):
     return f"{min(quarters)}..{max(quarters)}" if quarters else None
 
 
+def moj_window(as_of):
+    """"2025-Q4..2026-Q3": the four quarters ending with the quarter of a MOJ deal date (the 12-month window)."""
+    if not as_of:
+        return None
+    y, q = int(as_of[:4]), (int(as_of[5:7]) - 1) // 3 + 1
+    k = y * 4 + q - 1 - 3
+    return f"{k // 4}-Q{k % 4 + 1}..{y}-Q{q}"
+
+
 def read_csv(path):
     if not path.exists():
         return []
@@ -286,6 +298,10 @@ def build(final_dir, base_dir):
             "lng": num(p.get("lng"), 5),
             "lat": num(p.get("lat"), 5),
             **type_fields(str(p.get("district_id")), sales, rents),
+            "sale_all": ppm2,
+            "sale_all_n": num(p.get("deals_12m")) or 0,
+            "sale_all_conf": conf,
+            "sale_all_chg": yoy,
         }
         features.append({"type": "Feature", "id": len(features), "properties": props,
                          "geometry": round_coords(mapping(geom))})
@@ -296,7 +312,8 @@ def build(final_dir, base_dir):
     # Publish a city only when enough districts get a confident (high or medium) sale price for at least one
     # property type: the sale map by type is the main view, so a city with rents only would open empty.
     def confident(props):
-        return any(props.get(f"{k}_conf") in ("high", "medium") for k, (mode, _) in METRICS.items() if mode == "sale")
+        return any(props.get(f"{k}_conf") in ("high", "medium")
+                   for k, (mode, ty) in METRICS.items() if mode == "sale" and ty != "all")
 
     # ... and only when most of its registry deeds match a district polygon (otherwise the map is missing the
     # districts where most sales happen). The match rate is shown per city.
@@ -337,6 +354,10 @@ def build(final_dir, base_dir):
             "median_ppm2": int(statistics.median(prices)) if prices else None,
             "breaks": nice_breaks(prices),
             "sale_window": windows.get(slug),
+            # The quarter most of the city's priced districts last traded in, not the newest deal anywhere:
+            # Riyadh's MOJ deals thinned out after May 2026 (Real Estate Registry), so its window ends in Q2.
+            "sale_all_window": moj_window(statistics.median_low(
+                [r["last_deal"] for r, _ in rows if r["sale_all"] is not None and r["last_deal"]] or [as_of])),
             "match": coverage.get(slug, {}).get("rega_match"),
             "rent_window": rent_window(web_meta.get(slug, {}).get("rent_quarters")),
             "metrics": {

@@ -120,6 +120,23 @@ def complete_quarter(volume: dict) -> str | None:
     return qs[-1] if qs else None
 
 
+def full_windows(latest: str | None, have: set) -> str | None:
+    """The newest quarter, at or before latest, whose window and year-earlier window are both fully in the source.
+
+    A quarter the source lacks (MOJ 2025-Q2 was never republished correctly) would make one side of the comparison
+    shorter than the other and the label wrong, so the report steps back to the newest pair of whole windows."""
+    if not latest:
+        return None
+    n = qnum(latest)
+    for m in range(n, n - 5, -1):
+        need = set(range(m - WINDOW + 1, m + 1)) | set(range(m - 4 - WINDOW + 1, m - 4 + 1))
+        if all(qstr(k) in have for k in need):
+            if m != n:
+                print(f"  report window stepped back from {latest} to {qstr(m)}: a quarter is missing in between")
+            return qstr(m)
+    return latest
+
+
 def agg(qs: dict, end: int):
     """Price and count over the WINDOW quarters ending at quarter number end.
 
@@ -266,7 +283,7 @@ def main():
         slug = c["slug"]
         if slug not in published:
             continue
-        moj_q = complete_quarter(volume.get(slug, {}))
+        moj_q = full_windows(complete_quarter(volume.get(slug, {})), set(volume.get(slug, {})))
         cov = coverage(volume.get(slug, {}))
         rega_qs = {q for t in rega.get(slug, {}).values() for qs in t.values() for q in qs}
         rega_q = max(rega_qs, key=qnum) if rega_qs else None

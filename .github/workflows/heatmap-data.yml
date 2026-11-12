@@ -44,26 +44,48 @@ jobs:
 
       - run: pip install -r data/pipelines/requirements.txt
 
-      - name: Fetch the open data mirrors
+      - name: Fetch the open data mirrors (pinned in sources.lock.json)
         run: |
-          git clone --depth 1 https://github.com/civillizard/saudi-real-estate-data "$RUNNER_TEMP/moj"
-          git clone --depth 1 https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts "$RUNNER_TEMP/boundaries"
+          fetch_pinned() {  # repo url, commit, folder
+            git init -q "$3" && git -C "$3" fetch -q --depth 1 "$1" "$2" && git -C "$3" checkout -q FETCH_HEAD
+          }
+          lock=data/pipelines/sources.lock.json
+          fetch_pinned "$(jq -r .mirror.repo $lock)" "$(jq -r .mirror.commit $lock)" "$RUNNER_TEMP/moj"
+          fetch_pinned "$(jq -r .boundaries.repo $lock)" "$(jq -r .boundaries.commit $lock)" "$RUNNER_TEMP/boundaries"
           echo "MOJ mirror at $(git -C "$RUNNER_TEMP/moj" log -1 --format='%h %cs')"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/source-cache
+          key: sources-${{ hashFiles('data/pipelines/sources.lock.json') }}
+
+      - name: Lay the newest quarters over the mirror (MOJ 2026-Q2+, GASTAT index), checked
+        run: |
+          python data/pipelines/fetch_latest.py --base "$RUNNER_TEMP/moj" --out "$RUNNER_TEMP/tree" \
+            --cache "$RUNNER_TEMP/source-cache" | tee "$RUNNER_TEMP/fetch.txt"
+          { echo '### Sources'; echo '```'; cat "$RUNNER_TEMP/fetch.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Anything newer upstream than the lock?
+        continue-on-error: true
+        run: |
+          python data/pipelines/fetch_latest.py --discover | tee "$RUNNER_TEMP/discover.json"
+          { echo '### Newer data upstream (bump sources.lock.json in a PR to take it)'; echo '```json';
+            cat "$RUNNER_TEMP/discover.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build district prices (MOJ deals, REGA rents)
         env:
-          MOJ_REPO: ${{ runner.temp }}/moj
+          MOJ_REPO: ${{ runner.temp }}/tree
           BOUNDARIES: ${{ runner.temp }}/boundaries
         run: bash data/pipelines/build_all.sh
 
       - name: Build the final dataset
         run: |
-          python data/pipelines/build_base.py --moj "$RUNNER_TEMP/moj/moj/sales" --out "$RUNNER_TEMP/base"
+          python data/pipelines/build_base.py --moj "$RUNNER_TEMP/tree/moj/sales" --out "$RUNNER_TEMP/base"
           python data/pipelines/build_final.py --base "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/final"
 
       - name: Build sale prices by property type (REGA registry deeds)
         run: |
-          python data/pipelines/build_rega_sales.py --sales "$RUNNER_TEMP/moj/rega/quarterlies/sales" \
+          python data/pipelines/build_rega_sales.py --sales "$RUNNER_TEMP/tree/rega/quarterlies/sales" \
             --districts "$RUNNER_TEMP/base/districts.geojson" --out "$RUNNER_TEMP/base"
 
       - name: Export public data behind quality gates
@@ -77,6 +99,11 @@ jobs:
           python data/pipelines/build_report.py --deals "$RUNNER_TEMP/final/deals_clean.csv.gz" \
             --rega "$RUNNER_TEMP/base/sales_district_quarterly.csv" \
             --districts apps/heatmap/public/data/districts.geojson --out apps/heatmap/public/data/report.json
+
+      - name: Official price index by region and type (GASTAT)
+        run: |
+          python data/pipelines/build_gastat_repi.py --xlsx "$RUNNER_TEMP/tree/gastat/repi.xlsx" \
+            --out apps/heatmap/public/data/repi.json
 
       - name: Commit changed data
         id: commit

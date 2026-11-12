@@ -63,7 +63,8 @@ schema change.
 
 | Source | Adapter | How | Today |
 |---|---|---|---|
-| MOJ deals | `build_moj_market.py` reads the mirror | Download quarterly files (official portal in Phase 1, GitHub mirror today) | Active |
+| MOJ deals | `build_moj_market.py` reads the tree from `fetch_latest.py` | Pinned mirror + newer quarters from pinned republications of the Ministry's report, cross-checked (`sources.lock.json`) | Active, to 2026-Q3 |
+| GASTAT price index | `build_gastat_repi.py` | Pinned stats.gov.sa workbook, region x type, quarterly | Active, to 2026-Q3 |
 | REGA rents | `build_rega_rent.py` | Download quarterly rental indicators | Active |
 | District polygons | `build_moj_market.py` (boundaries) | Load once, refresh when a city adds districts | Active, GPL-2.0 to clear |
 | Old offers | `build_riyadh_offers.py` | Frozen file | Active, analysis only |

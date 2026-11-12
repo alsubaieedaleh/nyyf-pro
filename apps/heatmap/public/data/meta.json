@@ -1,6 +1,6 @@
 {
- "data_as_of": "2026-03-31",
- "built_at": "2026-11-11T09:01Z",
+ "data_as_of": "2026-09-30",
+ "built_at": "2026-11-12T06:53Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_land": {
@@ -60,14 +60,14 @@
     25.1688
    ],
    "districts": 189,
-   "priced": 151,
+   "priced": 147,
    "high": 0,
-   "median_ppm2": 3831,
+   "median_ppm2": 3902,
    "breaks": [
     2000,
     3000,
     4500,
-    7000
+    7500
    ],
    "sale_window": "2024-Q3..2025-Q2",
    "match": 0.989,
@@ -197,8 +197,8 @@
    ],
    "districts": 170,
    "priced": 109,
-   "high": 79,
-   "median_ppm2": 2841,
+   "high": 0,
+   "median_ppm2": 2981,
    "breaks": [
     1250,
     2250,
@@ -333,13 +333,13 @@
    ],
    "districts": 68,
    "priced": 49,
-   "high": 19,
-   "median_ppm2": 2250,
+   "high": 23,
+   "median_ppm2": 2381,
    "breaks": [
-    1400,
-    1900,
-    2500,
-    3500
+    1300,
+    2000,
+    2600,
+    3000
    ],
    "sale_window": "2024-Q3..2025-Q2",
    "match": 0.666,
@@ -468,14 +468,14 @@
     25.2119
    ],
    "districts": 118,
-   "priced": 83,
-   "high": 32,
-   "median_ppm2": 1899,
+   "priced": 85,
+   "high": 0,
+   "median_ppm2": 2000,
    "breaks": [
-    900,
-    1600,
-    2300,
-    3400
+    1000,
+    1500,
+    2500,
+    3500
    ],
    "sale_window": "2024-Q1..2024-Q4",
    "match": 0.984,
@@ -606,12 +606,12 @@
    "districts": 87,
    "priced": 60,
    "high": 0,
-   "median_ppm2": 2328,
+   "median_ppm2": 2368,
    "breaks": [
-    1700,
+    1900,
     2100,
     2500,
-    3000
+    3100
    ],
    "sale_window": "2024-Q3..2025-Q2",
    "match": 0.928,
@@ -740,13 +740,13 @@
     26.3857
    ],
    "districts": 44,
-   "priced": 39,
+   "priced": 38,
    "high": 0,
-   "median_ppm2": 3233,
+   "median_ppm2": 3359,
    "breaks": [
     1250,
-    2750,
-    3750,
+    3000,
+    3500,
     4500
    ],
    "sale_window": "2025-Q1..2025-Q2",
@@ -876,14 +876,14 @@
     25.3952
    ],
    "districts": 100,
-   "priced": 65,
+   "priced": 68,
    "high": 0,
-   "median_ppm2": 1283,
+   "median_ppm2": 1291,
    "breaks": [
     900,
     1200,
-    1400,
-    1750
+    1350,
+    1600
    ],
    "sale_window": "2025-Q1..2025-Q2",
    "match": 0.654,
@@ -1008,13 +1008,13 @@
    ],
    "districts": 36,
    "priced": 30,
-   "high": 9,
-   "median_ppm2": 435,
+   "high": 16,
+   "median_ppm2": 397,
    "breaks": [
-    250,
-    350,
-    475,
-    600
+    275,
+    375,
+    450,
+    575
    ],
    "sale_window": "2025-Q1..2025-Q2",
    "match": 0.852,
@@ -1156,6 +1156,6 @@
  "totals": {
   "districts": 812,
   "priced": 586,
-  "high": 139
+  "high": 39
  }
 }

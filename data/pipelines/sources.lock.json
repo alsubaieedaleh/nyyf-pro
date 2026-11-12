@@ -1,0 +1,63 @@
+{
+  "_comment": "Every external input of the heat map pipeline, pinned. fetch_latest.py downloads exactly these bytes and stops on a checksum mismatch. To take newer data: run fetch_latest.py --discover, review what changed upstream, then bump the commit/url/sha256 here in a PR (the data expert audits the result).",
+  "mirror": {
+    "name": "civillizard/saudi-real-estate-data",
+    "repo": "https://github.com/civillizard/saudi-real-estate-data",
+    "commit": "b3530b678e479d825223b3c8d1e932fa50d85e4f",
+    "committed": "2026-09-14",
+    "holds": "MOJ sale deals 2020-Q1..2026-Q1 (2025-Q2 file is a mislabelled 2024-Q2), REGA sales by district to 2025-Q4 (Q3 partial), REGA rents to 2026-Q1, MOJ transfer counts by city to 2026-Q2",
+    "licence": "KSA Open Data License (MOJ, REGA)"
+  },
+  "boundaries": {
+    "name": "homaily/Saudi-Arabia-Regions-Cities-and-Districts",
+    "repo": "https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts",
+    "commit": "7e322945fa9f6d696a54ba3e9038e0e750e9692d",
+    "licence": "GPL-2.0 (prototype only, see docs/09 Q7)"
+  },
+  "moj_overlays": [
+    {
+      "id": "moj-2026q2-raw",
+      "quarter": "2026-Q2",
+      "layout": "moj",
+      "publisher": "MOJ sale deals Apr-Jun 2026 in the Ministry's own layout, republished by a public GitHub analysis repo (YazeedFAlmuhlaki/Saudi-Real-Estate-Market-Analysis, data/raw)",
+      "url": "https://raw.githubusercontent.com/YazeedFAlmuhlaki/Saudi-Real-Estate-Market-Analysis/8df2a9e355fcabb29b32e481b2aa74f1a9f1137b/data/raw/transactions.csv",
+      "sha256": "d6204f66fb1a953bf0934ccd7d6ecacf12ed6f82d2e20d9c12cf37104460bd31",
+      "rows": 34664,
+      "licence": "Saudi Open Data License (MOJ data). Attribute: Ministry of Justice"
+    },
+    {
+      "id": "moj-2026q2-ksald",
+      "quarter": "2026-Q2",
+      "layout": "ksald",
+      "publisher": "KSA Land Data (Tarkib) free quarter sample on Hugging Face, from the Ministry's public real-estate transactions report (moj.gov.sa). Ministry fields unmodified",
+      "url": "https://huggingface.co/datasets/HTouqan/saudi-property-sale-transactions-2026q2/resolve/c3b5ed2a563baeb268bf9ea39f23facf35c90756/ksa-land-data-sample-2026Q2.csv",
+      "sha256": "c71737bc401a2bf2c6dfab96c3de579da4e380e819c4059407e925f25c639ebe",
+      "rows": 34656,
+      "licence": "Saudi Open Data License (ODC Attribution). Attribute: Ministry of Justice"
+    },
+    {
+      "id": "moj-2026q3-ksald",
+      "quarter": "2026-Q3",
+      "layout": "ksald",
+      "publisher": "KSA Land Data (Tarkib) free quarter sample on Hugging Face (every sale of 2026-Q3), from the Ministry's public real-estate transactions report (moj.gov.sa). Ministry fields unmodified",
+      "url": "https://huggingface.co/datasets/HTouqan/saudi-property-sale-transactions-2026q2/resolve/c3b5ed2a563baeb268bf9ea39f23facf35c90756/ksa-land-data-sample-2026Q3.csv",
+      "sha256": "b2f27b2c29f75389b8e9b728bfbe27d2b48ec019c996c0acf5ba97ef004af986",
+      "rows": 30348,
+      "preliminary_months": ["2026-09"],
+      "licence": "Saudi Open Data License (ODC Attribution). Attribute: Ministry of Justice"
+    }
+  ],
+  "gastat_repi": {
+    "quarter": "2026-Q3",
+    "publisher": "General Authority for Statistics (GASTAT), Real Estate Price Index tables, 2023=100, by region and by property type",
+    "url": "https://stats.gov.sa/documents/d/guest/repi_q3_2026_ar-en",
+    "sha256": "220efb874d948dfe54fd8715f3fe362cd6f6da9375f149f3f70f1f64a31f9ff2",
+    "licence": "GASTAT open statistics. Attribute: General Authority for Statistics"
+  },
+  "watch": {
+    "_comment": "Read-only checks for --discover: where newer data shows up first.",
+    "hf_dataset": "HTouqan/saudi-property-sale-transactions-2026q2",
+    "ksald_meta": "https://ksalanddata.com/v1/meta",
+    "gastat_next": "https://stats.gov.sa/documents/d/guest/repi_{q}_{y}_ar-en"
+  }
+}

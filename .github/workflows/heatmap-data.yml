@@ -59,10 +59,22 @@ jobs:
           path: ${{ runner.temp }}/source-cache
           key: sources-${{ hashFiles('data/pipelines/sources.lock.json') }}
 
+      - name: Official portal files from the Saudi runner (open-portal-data branch), if any
+        run: |
+          if git ls-remote --exit-code --heads origin open-portal-data >/dev/null; then
+            git init -q "$RUNNER_TEMP/portal"
+            git -C "$RUNNER_TEMP/portal" fetch -q --depth 1 "https://github.com/${{ github.repository }}" open-portal-data
+            git -C "$RUNNER_TEMP/portal" checkout -q FETCH_HEAD
+            echo "PORTAL_ARG=--portal $RUNNER_TEMP/portal" >> "$GITHUB_ENV"
+            echo "Portal files from $(git -C "$RUNNER_TEMP/portal" log -1 --format='%h %cs')"
+          else
+            echo "No open-portal-data branch yet: building from the mirror and the pinned overlays."
+          fi
+
       - name: Lay the newest quarters over the mirror (MOJ 2026-Q2+, GASTAT index), checked
         run: |
           python data/pipelines/fetch_latest.py --base "$RUNNER_TEMP/moj" --out "$RUNNER_TEMP/tree" \
-            --cache "$RUNNER_TEMP/source-cache" | tee "$RUNNER_TEMP/fetch.txt"
+            --cache "$RUNNER_TEMP/source-cache" ${PORTAL_ARG:-} | tee "$RUNNER_TEMP/fetch.txt"
           { echo '### Sources'; echo '```'; cat "$RUNNER_TEMP/fetch.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Anything newer upstream than the lock?

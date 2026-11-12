@@ -28,6 +28,7 @@ Checks, for each overlay quarter:
 
 Usage:
   python data/pipelines/fetch_latest.py --base <mirror clone or fetch_open_data tree> --out <dir> [--cache <dir>]
+                                        [--portal <open-portal-data checkout>]
   python data/pipelines/fetch_latest.py --discover     read-only: is there anything newer upstream than the lock?
 """
 
@@ -255,12 +256,37 @@ def prev_quarters(q: str, n: int) -> list[str]:
 
 # ---------- main steps ----------
 
-def build(base: Path, out: Path, cache: Path, lock: dict, accept_partial: bool = False) -> dict:
+def apply_portal(portal: Path, out: Path) -> dict:
+    """Lay the official portal files fetched from a Saudi machine (fetch_open_data.py --delta, published to the
+    open-portal-data branch) over the linked tree. They were checked there (quarter, copies, completeness); each
+    replaces the mirror file(s) its report names."""
+    rep = json.loads((portal / "fetch_report.json").read_text(encoding="utf-8"))
+    dirs = {"moj_sales": "moj/sales", "rega_sales": "rega/quarterlies/sales", "rega_rental": "rega/quarterlies/rental"}
+    applied = []
+    for r in rep.get("files", []):
+        if r.get("status") not in ("added", "replaced") or not r.get("file") or r.get("series") not in dirs:
+            continue
+        folder = out / dirs[r["series"]]
+        src = portal / dirs[r["series"]] / r["file"]
+        if not src.exists():
+            raise SystemExit(f"portal delta lists {r['file']} but the file is missing")
+        for old in [*(r.get("replaces") or []), r["file"]]:
+            for f in folder.glob(old + "*"):
+                f.unlink()  # unlink only: the base tree behind the hard link is untouched
+        shutil.copy2(src, folder / r["file"])
+        applied.append({"file": r["file"], "status": r["status"], "replaces": r.get("replaces"), "rows": r.get("rows")})
+    return {"fetched_at": rep.get("fetched_at"), "latest": rep.get("latest"), "applied": applied}
+
+
+def build(base: Path, out: Path, cache: Path, lock: dict, accept_partial: bool = False,
+          portal: Path | None = None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     link_tree(base, out)
     sales = out / "moj" / "sales"
     report: dict = {"built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "base": str(base), "lock": {"mirror_commit": lock["mirror"]["commit"]}, "quarters": [], "warnings": []}
+    if portal and (portal / "fetch_report.json").exists():
+        report["portal"] = apply_portal(portal, out)
 
     by_quarter: dict[str, list[dict]] = defaultdict(list)
     for src in lock.get("moj_overlays", []):
@@ -454,6 +480,7 @@ def main():
     ap.add_argument("--cache", type=Path, default=Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "nyyf-source-cache")
     ap.add_argument("--lock", type=Path, default=LOCK)
     ap.add_argument("--accept-partial", action="store_true")
+    ap.add_argument("--portal", type=Path, help="official portal files from the Saudi runner (open-portal-data branch)")
     ap.add_argument("--discover", action="store_true", help="only report what is newer upstream than the lock")
     args = ap.parse_args()
     lock = json.loads(args.lock.read_text(encoding="utf-8"))
@@ -463,7 +490,12 @@ def main():
         return
     if not args.base or not args.out:
         ap.error("--base and --out are needed (or --discover)")
-    rep = build(args.base, args.out, args.cache, lock, args.accept_partial)
+    rep = build(args.base, args.out, args.cache, lock, args.accept_partial, args.portal)
+    if rep.get("portal"):
+        p = rep["portal"]
+        print(f"Official portal files fetched {p['fetched_at']}: {len(p['applied'])} applied")
+        for a in p["applied"]:
+            print(f"  {a['status']:9} {a['file']}" + (f" (replaces {', '.join(a['replaces'])})" if a.get("replaces") else ""))
     for e in rep["quarters"]:
         extra = " single source" if e.get("single_source") else ""
         prelim = f" preliminary {','.join(e['preliminary_months'])}" if e.get("preliminary_months") else ""

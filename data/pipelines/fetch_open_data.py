@@ -383,6 +383,21 @@ def take(portal: Portal, tree: Tree, key: str, title: str, res: dict, written: d
     return {**entry, "status": "replaced" if same_key else "added", "replaces": [f.name for f in same_key] or None}
 
 
+def write_delta(out: Path, delta: Path, report: list[dict]):
+    """Copy the files the portal added or replaced into delta, in the tree's layout, with fetch_report.json.
+
+    fetch_latest.py --portal <delta> lays them over the mirror (and deletes the files they replace)."""
+    if delta.exists():
+        shutil.rmtree(delta)
+    for r in report:
+        if r.get("status") in ("added", "replaced") and r.get("file"):
+            rel = Path(SERIES[r["series"]]["dir"]) / r["file"]
+            (delta / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(out / rel, delta / rel)
+    delta.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(out / "fetch_report.json", delta / "fetch_report.json")
+
+
 def latest(out: Path) -> dict:
     """Newest quarter per series in the output tree."""
     res = {}
@@ -399,6 +414,9 @@ def main():
     ap.add_argument("--portal", default=PORTAL, help="portal base URL")
     ap.add_argument("--delay", type=float, default=2.0, help="seconds between requests")
     ap.add_argument("--check", action="store_true", help="only test that the portal answers")
+    ap.add_argument("--delta", type=Path,
+                    help="also copy only the files the portal added or replaced (plus fetch_report.json) here; "
+                         "this is what the self-hosted runner publishes to the open-portal-data branch")
     ap.add_argument("--accept-partial", action="store_true",
                     help="take MOJ and rental files flagged partial (check their completeness ratio first)")
     args = ap.parse_args()
@@ -430,6 +448,8 @@ def main():
         json.dumps({"fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "latest": after,
                     "mirror_latest": before, "files": report}, ensure_ascii=False, indent=1),
         encoding="utf-8")
+    if args.delta:
+        write_delta(args.out, args.delta, report)
     if any(r.get("status") == "error" for r in report) and not any(r.get("status") in ("added", "replaced", "same as mirror") for r in report):
         sys.exit(1)  # nothing reached: the portal is down or blocks this IP
 

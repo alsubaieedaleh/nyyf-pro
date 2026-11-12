@@ -42,7 +42,7 @@ is the only current official signal. `fetch_latest_report.json` flags Riyadh and
 | Option | Gives | Cost / approval |
 |---|---|---|
 | KSA Land Data full file | MOJ 2025-Q2 (the portal's original release), so YoY and the report use whole windows to 2026-Q3 | $49 once, Saudi Open Data License |
-| A Saudi machine running `fetch_open_data.py` | Official portal files (2025-Q2, newer REGA rents and district sales) | A small Saudi VPS or self-hosted runner |
+| Saudi self-hosted GitHub runner (`heatmap-portal-fetch.yml`, set up) | Official portal files: newer REGA rents and district sales, official MOJ quarters. Note: the portal now serves a repeat of 2024-Q2 under the 2025-Q2 name, so the fetcher's date check may still skip it | Register the owner's PC or a Saudi VPS as a runner with labels `self-hosted, saudi`; it publishes to the `open-portal-data` branch, which the weekly build lays over the mirror |
 | REGA written approval (draft in the project folder) | Registry deals by district and type to 2026-Q3, monthly Ejar rents: fixes Riyadh | Approval from REGA |
 | Aqarsas API | Daily MOJ + registry deals | Paid plan |
 | MOJ interactive report (Power BI on moj.gov.sa) | Same deals as the open files, weekly | Querying its internal API is not a documented open-data channel; not used |

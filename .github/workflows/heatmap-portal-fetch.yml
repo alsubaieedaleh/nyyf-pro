@@ -1,0 +1,81 @@
+# Fetch the official MOJ and REGA files from the Saudi Open Data Portal (open.data.gov.sa).
+#
+# The portal only answers Saudi IP addresses, so GitHub's own runners cannot reach it. This job runs on a
+# self-hosted runner in Saudi Arabia (labels: self-hosted, saudi), for example the owner's PC or a small Saudi
+# VPS. It runs fetch_open_data.py against the pinned mirror, keeps only the files the portal added or replaced,
+# and publishes them with fetch_report.json to the open-portal-data branch. The weekly "Heat map data refresh"
+# lays that branch over the mirror (fetch_latest.py --portal). If the runner is offline, nothing breaks: the
+# weekly build uses the last published portal files, or none.
+#
+# Safety on a public repo: this workflow only runs on a schedule or by hand from main, never on pull requests.
+# Keep "Require approval for all external contributors" on (Settings > Actions > General) so a fork cannot run
+# code on the self-hosted machine.
+name: Official portal fetch (Saudi runner)
+
+on:
+  schedule:
+    - cron: "0 1 * * 0" # Sundays 04:00 Riyadh time, two hours before the weekly build
+  workflow_dispatch:
+    inputs:
+      accept_partial:
+        description: "Take MOJ/rent quarters flagged partial (check the printed ratio first)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: portal-fetch
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  fetch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, saudi]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python on this machine
+        id: py
+        run: |
+          PY=$(command -v python3 || command -v python)
+          "$PY" --version
+          echo "py=$PY" >> "$GITHUB_OUTPUT"
+
+      - name: Portal reachable from here?
+        run: ${{ steps.py.outputs.py }} data/pipelines/fetch_open_data.py --check
+
+      - name: Pinned mirror
+        run: |
+          lock=data/pipelines/sources.lock.json
+          read_lock() { ${{ steps.py.outputs.py }} -c "import json,sys; print(json.load(open('$lock'))['mirror'][sys.argv[1]])" "$1"; }
+          rm -rf "$RUNNER_TEMP/mirror"
+          git init -q "$RUNNER_TEMP/mirror"
+          git -C "$RUNNER_TEMP/mirror" fetch -q --depth 1 "$(read_lock repo)" "$(read_lock commit)"
+          git -C "$RUNNER_TEMP/mirror" checkout -q FETCH_HEAD
+
+      - name: Fetch the official files (only new or replaced ones are kept)
+        run: |
+          rm -rf "$RUNNER_TEMP/tree" "$RUNNER_TEMP/delta"
+          ${{ steps.py.outputs.py }} data/pipelines/fetch_open_data.py --mirror "$RUNNER_TEMP/mirror" \
+            --out "$RUNNER_TEMP/tree" --delta "$RUNNER_TEMP/delta" --delay 2 \
+            ${{ inputs.accept_partial && '--accept-partial' || '' }} | tee "$RUNNER_TEMP/fetch.txt"
+          { echo '### Official portal fetch'; echo '```'; cat "$RUNNER_TEMP/fetch.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the open-portal-data branch
+        run: |
+          cd "$RUNNER_TEMP/delta"
+          git init -q -b open-portal-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Official portal files $(date -u +%Y-%m-%d) (self-hosted Saudi runner)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
+            open-portal-data
+          echo "Published $(git ls-files | wc -l) files to open-portal-data" >> "$GITHUB_STEP_SUMMARY"

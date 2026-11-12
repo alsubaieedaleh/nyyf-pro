@@ -159,3 +159,29 @@ class AuditRulesTest(unittest.TestCase):
         en, ar = export_public.yoy_note({"months_now": 12, "months_before": 9, "missing": ["2025-Q2"]})
         self.assertIn("12 months with 9", en)
         self.assertIn("2025-Q2", ar)
+
+
+class PortalDeltaTest(unittest.TestCase):
+    def test_delta_from_saudi_runner_replaces_mirror_files(self):
+        import fetch_open_data as fod
+        tmp = Path(tempfile.mkdtemp())
+        mirror, tree, delta, out = tmp / "mirror", tmp / "tree", tmp / "delta", tmp / "out"
+        write(mirror / "moj/sales/MOJ-Sales-2025-Q1.csv", fl.MOJ_HEADER, moj_rows(2025, 1, 50))
+        write(mirror / "rega/quarterlies/rental/Rental-AlJawf-1st-Q-2026.csv", ["السنة"], [["2026"]])
+        # What fetch_open_data leaves on the Saudi runner: a new MOJ quarter and a renamed REGA file.
+        write(tree / "moj/sales/MOJ-Sales-2025-Q2.csv", fl.MOJ_HEADER, moj_rows(2025, 2, 50))
+        write(tree / "rega/quarterlies/rental/Rental-AlJouf-Q1-2026.csv", ["السنة"], [["2026"], ["2026"]])
+        report = [{"series": "moj_sales", "file": "MOJ-Sales-2025-Q2.csv", "status": "added", "rows": 50},
+                  {"series": "rega_rental", "file": "Rental-AlJouf-Q1-2026.csv", "status": "replaced",
+                   "replaces": ["Rental-AlJawf-1st-Q-2026.csv"], "rows": 2},
+                  {"series": "rega_sales", "file": "x.csv", "status": "same as mirror"}]
+        (tree / "fetch_report.json").write_text(json.dumps({"fetched_at": "t", "files": report}), encoding="utf-8")
+        fod.write_delta(tree, delta, report)
+        self.assertEqual(sorted(p.name for p in delta.rglob("*.csv")), ["MOJ-Sales-2025-Q2.csv", "Rental-AlJouf-Q1-2026.csv"])
+
+        rep = fl.build(mirror, out, tmp / "cache", {"mirror": {"commit": "abc"}, "moj_overlays": []}, portal=delta)
+        self.assertEqual(len(rep["portal"]["applied"]), 2)
+        self.assertTrue((out / "moj/sales/MOJ-Sales-2025-Q2.csv").exists())
+        rent = sorted(p.name for p in (out / "rega/quarterlies/rental").iterdir())
+        self.assertEqual(rent, ["Rental-AlJouf-Q1-2026.csv"])
+        self.assertTrue((mirror / "rega/quarterlies/rental/Rental-AlJawf-1st-Q-2026.csv").exists())  # base untouched

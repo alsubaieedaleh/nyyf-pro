@@ -8,7 +8,7 @@ const BASE = process.argv[2] || "http://localhost:4173/";
 const PAGES = [
   "index.html",
   "home.html",
-  ...["land", "villa", "apartment"].map((t) => `map.html?mode=sale&type=${t}`),
+  ...["all", "land", "villa", "apartment"].map((t) => `map.html?mode=sale&type=${t}`),
   ...["apartment", "studio", "villa", "floor"].flatMap((t) => [
     `map.html?mode=rent&type=${t}`,
     `map.html?mode=rent&type=${t}&unit=m2`,

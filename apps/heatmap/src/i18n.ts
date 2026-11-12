@@ -38,6 +38,10 @@ export const STRINGS = {
     noPrice: "لا توجد صفقات كافية لهذا النوع في هذا الحي.",
     reasonSale: (n: number, w: string) => `${n} صك بيع مسجل، ${w}`,
     reasonAll: (n: number, w: string) => `${n} صفقة سكنية (وزارة العدل)، ${w}`,
+    yoyShort: (now: number, before: number, missing: string) =>
+      `يقارن ${now} شهرًا بـ ${before} أشهر من العام السابق (لا تتوفر بيانات وزارة العدل للفترة ${missing})`,
+    riyadhMoj:
+      "معظم صفقات الرياض تُسجل في السجل العقاري منذ 2025، فهذه الطبقة تضم حصة وزارة العدل فقط (نحو صفقة من كل خمس) حتى مايو 2026، وكلها بثقة منخفضة. اختر نوعًا لأسعار السجل العقاري.",
     allNote: "صفقات وزارة العدل: الأراضي والفلل والشقق معًا، فالسعر يتأثر بنوع ما بيع في الحي.",
     reasonRent: (n: number, w: string) => `${n} عقد إيجار، ${w} (منصة إيجار)`,
     change: "التغير السنوي",
@@ -203,6 +207,10 @@ export const STRINGS = {
     noPrice: "Not enough deals of this type in this district.",
     reasonSale: (n: number, w: string) => `${n} registered sale deeds, ${w}`,
     reasonAll: (n: number, w: string) => `${n} residential deals (Ministry of Justice), ${w}`,
+    yoyShort: (now: number, before: number, missing: string) =>
+      `Compares ${now} months with ${before} a year earlier (${missing} has no MOJ data)`,
+    riyadhMoj:
+      "Most Riyadh sales have been filed in the Real Estate Registry since 2025, so this layer holds only the Ministry's share (about 1 in 5), to May 2026, all at low confidence. Pick a type for registry prices.",
     allNote: "Ministry of Justice deals: land, villas and apartments together, so the price follows what sold in each district.",
     reasonRent: (n: number, w: string) => `${n} rental contracts, ${w} (Ejar)`,
     change: "Year on year",
@@ -353,11 +361,18 @@ export function fmtDate(iso: string, locale: Locale) {
 
 /** "2025-Q3" -> "الربع 3 2025" / "Q3 2025". */
 export function fmtQuarter(q: string, locale: Locale) {
+  // A month ("2026-05") reads as "May 2026": the MOJ windows are in months.
+  if (!q.includes("-Q"))
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {
+      year: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    }).format(new Date(q + "-01T00:00:00Z"));
   const [y, n] = q.split("-Q");
   return locale === "ar" ? `الربع ${n} ${y}` : `Q${n} ${y}`;
 }
 
-/** "2024-Q4..2025-Q3" -> a readable window. */
+/** "2024-Q4..2025-Q3" or "2025-10..2026-09" -> a readable window. */
 export function fmtWindow(w: string | null | undefined, locale: Locale) {
   if (!w) return "";
   const [a, b] = w.split("..");

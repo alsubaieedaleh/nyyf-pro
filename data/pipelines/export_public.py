@@ -30,6 +30,7 @@ Usage:
 
 import argparse
 import csv
+import gzip
 import json
 import statistics
 import sys
@@ -178,13 +179,36 @@ def rent_window(quarters):
     return f"{min(quarters)}..{max(quarters)}" if quarters else None
 
 
-def moj_window(as_of):
-    """"2025-Q4..2026-Q3": the four quarters ending with the quarter of a MOJ deal date (the 12-month window)."""
-    if not as_of:
-        return None
-    y, q = int(as_of[:4]), (int(as_of[5:7]) - 1) // 3 + 1
-    k = y * 4 + q - 1 - 3
-    return f"{k // 4}-Q{k % 4 + 1}..{y}-Q{q}"
+LIVE_MONTH = 0.1  # a month with under a tenth of the city's median monthly MOJ deals no longer counts as covered
+
+
+def month_add(ym: str, n: int) -> str:
+    k = int(ym[:4]) * 12 + int(ym[5:7]) - 1 + n
+    return f"{k // 12}-{k % 12 + 1:02d}"
+
+
+def moj_windows(deals_path: Path, as_of: str) -> dict:
+    """city -> "2025-10..2026-09": the months of the 12-month MOJ window that the city's deals really cover.
+
+    The window starts 11 months before the newest deal month and ends at the city's last month with real volume:
+    Riyadh's deals moved to the Real Estate Registry in May 2026 (421 deals in May, 10 in June), so it ends there."""
+    if not as_of or not deals_path.exists():
+        return {}
+    end, start = as_of[:7], month_add(as_of[:7], -11)
+    counts = defaultdict(lambda: defaultdict(int))
+    with gzip.open(deals_path, "rt", encoding="utf-8-sig", newline="") as fh:
+        for r in csv.DictReader(fh):
+            ym = r["date"][:7]
+            if start <= ym <= end and r["class"] == "residential" and r["ppm2_usable"] == "True":
+                counts[r["city"]][ym] += 1
+    out = {}
+    for city, by_month in counts.items():
+        months = [month_add(start, i) for i in range(12)]
+        floor = statistics.median([by_month.get(m, 0) for m in months]) * LIVE_MONTH
+        live = [m for m in months if by_month.get(m, 0) >= max(floor, 1)]
+        if live:
+            out[city] = f"{start}..{live[-1]}"
+    return out
 
 
 def read_csv(path):
@@ -299,7 +323,9 @@ def build(final_dir, base_dir):
             "lat": num(p.get("lat"), 5),
             **type_fields(str(p.get("district_id")), sales, rents),
             "sale_all": ppm2,
-            "sale_all_n": num(p.get("deals_12m")) or 0,
+            # The deals behind the price: the 12-month count, or the 24-month one where the price falls back.
+            "sale_all_n": deals_basis if ppm2 is not None else num(p.get("deals_12m")) or 0,
+            "sale_all_24m": p.get("price_basis") == "district_sold_residential_24m",
             "sale_all_conf": conf,
             "sale_all_chg": yoy,
         }
@@ -335,6 +361,7 @@ def build(final_dir, base_dir):
         for slug in skipped:
             by_city[slug] = []
 
+    moj_win = moj_windows(final_dir / "deals_clean.csv.gz", as_of)
     cities = []
     for slug, ar, en in CITIES:
         rows = by_city[slug]
@@ -354,10 +381,7 @@ def build(final_dir, base_dir):
             "median_ppm2": int(statistics.median(prices)) if prices else None,
             "breaks": nice_breaks(prices),
             "sale_window": windows.get(slug),
-            # The quarter most of the city's priced districts last traded in, not the newest deal anywhere:
-            # Riyadh's MOJ deals thinned out after May 2026 (Real Estate Registry), so its window ends in Q2.
-            "sale_all_window": moj_window(statistics.median_low(
-                [r["last_deal"] for r, _ in rows if r["sale_all"] is not None and r["last_deal"]] or [as_of])),
+            "sale_all_window": moj_win.get(slug),
             "match": coverage.get(slug, {}).get("rega_match"),
             "rent_window": rent_window(web_meta.get(slug, {}).get("rent_quarters")),
             "metrics": {

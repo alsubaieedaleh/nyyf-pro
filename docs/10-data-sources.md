@@ -20,9 +20,32 @@ from the official portals directly on a schedule.
 
 ## Freshness
 
-- MOJ deals: through **2026-03-31** (the latest file in the mirror). Window for "last 12 months" is 2025-04-01 to 2026-03-31; YoY compares with the 12 months before.
-- REGA rents: four latest quarters, **2025-Q2 to 2026-Q1**.
-- Every number on the map shows its data month in the city summary.
+Updated 2026-11-12. Every external input is pinned in `data/pipelines/sources.lock.json` (URL at a fixed
+commit, plus sha256). `fetch_latest.py` lays the newest quarters over the mirror, checks them, and the weekly
+workflow builds from that tree.
+
+| Data | Newest period on the map | Where it comes from | Checks |
+|---|---|---|---|
+| MOJ sale deals | **2026-09-30** (2026-Q3; September is preliminary, late registrations may still arrive) | 2020-Q1..2026-Q1: civillizard mirror. 2026-Q2: two independent republications of the Ministry's public transactions report, cross-checked (34,651 shared refs, no price differences). 2026-Q3: KSA Land Data's free full-quarter file on Hugging Face | Dates in quarter, cross-source agreement, no ref in two quarters, completeness vs the last 4 quarters |
+| MOJ 2025-Q2 | **missing** | The mirror's file is a mislabelled 2024-Q2 and is skipped | The report steps back to the newest pair of whole windows (2026-Q1) until it is filled |
+| REGA sales by district and type | 2025-Q2 (Madinah 2024-Q4) | civillizard mirror | Unchanged |
+| REGA rents (Ejar) | 2025-Q2..2026-Q1 | civillizard mirror | Unchanged |
+| GASTAT price index, by region and type | **2026-Q3** | stats.gov.sa tables (`repi.json`) | Every series must reach the same quarter |
+
+**Riyadh:** since 19 May 2026 Riyadh sales are registered only in the Real Estate Registry, which the MOJ files do
+not hold. MOJ has 1,676 Riyadh city deals in 2026-Q2 and 1 in 2026-Q3. Riyadh district prices rest on older REGA
+type data and on thin, capped-confidence MOJ deals; the GASTAT index (Riyadh region +4.6% on a year to 2026-Q3)
+is the only current official signal. `fetch_latest_report.json` flags Riyadh and Yanbu as "thinning".
+
+### What would make it fresher (needs a decision)
+
+| Option | Gives | Cost / approval |
+|---|---|---|
+| KSA Land Data full file | MOJ 2025-Q2 (the portal's original release), so YoY and the report use whole windows to 2026-Q3 | $49 once, Saudi Open Data License |
+| Saudi self-hosted GitHub runner (`heatmap-portal-fetch.yml`, set up) | Official portal files: newer REGA rents and district sales, official MOJ quarters. Note: the portal now serves a repeat of 2024-Q2 under the 2025-Q2 name, so the fetcher's date check may still skip it | Register the owner's PC or a Saudi VPS as a runner with labels `self-hosted, saudi`; it publishes to the `open-portal-data` branch, which the weekly build lays over the mirror |
+| REGA written approval (draft in the project folder) | Registry deals by district and type to 2026-Q3, monthly Ejar rents: fixes Riyadh | Approval from REGA |
+| Aqarsas API | Daily MOJ + registry deals | Paid plan |
+| MOJ interactive report (Power BI on moj.gov.sa) | Same deals as the open files, weekly | Querying its internal API is not a documented open-data channel; not used |
 
 ## Coverage per city
 

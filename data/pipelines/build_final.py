@@ -36,6 +36,7 @@ LAND = "قطعة أرض"
 # AS_OF and the 12- and 24-month windows are set in main() from the latest deal in the data.
 AS_OF = date(2026, 3, 31)
 WINDOW_12M = WINDOW_24M = (None, None)
+YOY_BASIS: dict = {}
 PLAN_QUARTER = "2023-Q1"
 MAX_RATIO = 5  # same outlier rule as build_moj_market.py
 MIN_DEALS = 5  # district price needs this many deals (as on the map)
@@ -98,6 +99,10 @@ def band(price, s):
     return price * s["p25"] / s["med"], price * s["p75"] / s["med"]
 
 
+HIGH_MIN_DEALS = 30
+MEDIUM_MIN_DEALS = 10
+
+
 def confidence(n, spread, months_old, method_cap):
     """Score 0-100 from deal count, price spread (IQR / median) and data age; then a label.
 
@@ -110,7 +115,10 @@ def confidence(n, spread, months_old, method_cap):
     score += 30 * max(0.0, 1 - min(spread if pd.notna(spread) else 1.5, 1.5) / 1.5)
     score += 20 * max(0.0, 1 - months_old / 36)
     score = round(min(score, method_cap))
-    label = "high" if score >= 70 else "medium" if score >= 45 else "low"
+    # A score alone can reach "medium" on a handful of tight, recent deals; the audit found 70 districts at medium
+    # on under 10 sales, which is where the noisiest moves were. Labels also need enough deals behind them.
+    label = ("high" if score >= 70 and n >= HIGH_MIN_DEALS
+             else "medium" if score >= 45 and n >= MEDIUM_MIN_DEALS else "low")
     return score, label
 
 
@@ -152,6 +160,18 @@ def main():
         coverage[city] = (np.mean(now) / np.mean(before)) if now and before else 1.0
     print("MOJ coverage (deals a quarter, last 12 months vs the 12 before):",
           ", ".join(f"{c} {v:.0%}" for c, v in sorted(coverage.items(), key=lambda kv: kv[1])))
+
+    # YoY compares the 12 months to the latest deal with the 12 before. A quarter missing from the data on one
+    # side (MOJ 2025-Q2) makes that side shorter, so say how many months each side has.
+    have_q = set(deals["quarter"].astype(str))
+    def months_in(start, end):
+        qs = pd.period_range(start, end, freq="Q")
+        return [str(q).replace("Q", "-Q") for q in qs], [str(q).replace("Q", "-Q") for q in qs if str(q).replace("Q", "-Q") not in have_q]
+    _, miss_now = months_in(WINDOW_12M[0], WINDOW_12M[1])
+    _, miss_before = months_in(WINDOW_24M[0], WINDOW_12M[0] - pd.Timedelta(days=1))
+    YOY_BASIS.update({"months_now": 12 - 3 * len(miss_now), "months_before": 12 - 3 * len(miss_before),
+                      "missing": miss_now + miss_before})
+    print("YoY basis:", YOY_BASIS)
 
     def coverage_cap(city):
         v = coverage.get(city, 1.0)
@@ -225,7 +245,7 @@ def main():
             price = s24["med"]
             lo, hi = band(price, s24)
             basis, n_basis = "district_sold_residential_24m", int(s24["n"])
-            score, label = confidence(n_basis, (hi - lo) / price, months_old_12m + 6, min(50, coverage_cap(d.city)))
+            score, label = confidence(n_basis, (hi - lo) / price, months_old_12m + 6, min(44, coverage_cap(d.city)))
         else:
             price = lo = hi = np.nan
             basis, n_basis, score, label = "no_price", 0, 0, "none"
@@ -314,6 +334,7 @@ def main():
               "deals_2023q1", "offers", "rent_contracts"]:
         idx[c] = idx[c].astype("Int64")
     idx.to_csv(out / "price_index.csv", index=False, encoding="utf-8-sig")
+    (out / "yoy_basis.json").write_text(json.dumps(YOY_BASIS), encoding="utf-8")
 
     rw = districts[["city", "district_id", "name_ar", "name_en"]].merge(rw, on="district_id")
     rw.to_csv(out / "rents_wide.csv", index=False, encoding="utf-8-sig")

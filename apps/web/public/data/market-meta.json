@@ -4,10 +4,10 @@
     "city_en": "Riyadh",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 326472,
-    "matched_deals": 304558,
+    "last_deal": "2026-07-19",
+    "window_start": "2025-07-20",
+    "deals": 328121,
+    "matched_deals": 305881,
     "districts": 189,
     "bbox": [
       46.3164,
@@ -16,9 +16,9 @@
       25.1688
     ],
     "districts_with_price": 136,
-    "median_ppm2_12m": 2507,
-    "deals_12m": 14952,
-    "value_12m": 31750966156,
+    "median_ppm2_12m": 2592,
+    "deals_12m": 14237,
+    "value_12m": 32515922063,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -30,7 +30,7 @@
       "source_quarter": "2023-Q1",
       "plans": 966,
       "with_land_price": 424,
-      "with_estimate": 409,
+      "with_estimate": 406,
       "placed": 112
     }
   },
@@ -39,10 +39,10 @@
     "city_en": "Jeddah",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 162214,
-    "matched_deals": 131334,
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 173199,
+    "matched_deals": 140677,
     "districts": 170,
     "bbox": [
       38.9467,
@@ -51,9 +51,9 @@
       21.9968
     ],
     "districts_with_price": 102,
-    "median_ppm2_12m": 3064,
-    "deals_12m": 21488,
-    "value_12m": 33258882987,
+    "median_ppm2_12m": 3149,
+    "deals_12m": 24673,
+    "value_12m": 37990041121,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -74,10 +74,10 @@
     "city_en": "Makkah",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 52905,
-    "matched_deals": 20811,
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 55758,
+    "matched_deals": 22383,
     "districts": 68,
     "bbox": [
       39.6021,
@@ -85,10 +85,10 @@
       40.0572,
       21.6089
     ],
-    "districts_with_price": 43,
+    "districts_with_price": 45,
     "median_ppm2_12m": 1953,
-    "deals_12m": 7233,
-    "value_12m": 10219557403,
+    "deals_12m": 8047,
+    "value_12m": 10501268964,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -109,10 +109,10 @@
     "city_en": "Madinah",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 51854,
-    "matched_deals": 34967,
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 57492,
+    "matched_deals": 39034,
     "districts": 118,
     "bbox": [
       38.7836,
@@ -120,10 +120,10 @@
       40.7317,
       25.2119
     ],
-    "districts_with_price": 72,
-    "median_ppm2_12m": 1300,
-    "deals_12m": 7471,
-    "value_12m": 6343506018,
+    "districts_with_price": 70,
+    "median_ppm2_12m": 1200,
+    "deals_12m": 8597,
+    "value_12m": 7804524279,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -144,10 +144,10 @@
     "city_en": "Dammam",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 37842,
-    "matched_deals": 31593,
+    "last_deal": "2026-09-27",
+    "window_start": "2025-09-28",
+    "deals": 40065,
+    "matched_deals": 33351,
     "districts": 87,
     "bbox": [
       49.7476,
@@ -155,10 +155,10 @@
       50.2342,
       26.5273
     ],
-    "districts_with_price": 57,
-    "median_ppm2_12m": 2150,
-    "deals_12m": 3892,
-    "value_12m": 6411765548,
+    "districts_with_price": 58,
+    "median_ppm2_12m": 2203,
+    "deals_12m": 4818,
+    "value_12m": 6804383620,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -179,10 +179,10 @@
     "city_en": "Al Khobar",
     "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
     "first_deal": "2020-01-01",
-    "last_deal": "2026-03-31",
-    "window_start": "2025-04-01",
-    "deals": 32262,
-    "matched_deals": 23596,
+    "last_deal": "2026-09-27",
+    "window_start": "2025-09-28",
+    "deals": 33981,
+    "matched_deals": 24746,
     "districts": 44,
     "bbox": [
       50.0974,
@@ -190,10 +190,10 @@
       50.2408,
       26.3857
     ],
-    "districts_with_price": 34,
-    "median_ppm2_12m": 3141,
-    "deals_12m": 3196,
-    "value_12m": 5221057139,
+    "districts_with_price": 35,
+    "median_ppm2_12m": 3325,
+    "deals_12m": 3739,
+    "value_12m": 6517636993,
     "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
     "rent_quarters": [
       "2025-Q2",
@@ -206,6 +206,601 @@
       "plans": 115,
       "with_land_price": 27,
       "with_estimate": 20,
+      "placed": 0
+    }
+  },
+  "taif": {
+    "city_ar": "الطائف",
+    "city_en": "Taif",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 32055,
+    "matched_deals": 11468,
+    "districts": 118,
+    "bbox": [
+      40.2547,
+      21.0402,
+      40.9025,
+      21.6724
+    ],
+    "districts_with_price": 47,
+    "median_ppm2_12m": 963,
+    "deals_12m": 4676,
+    "value_12m": 3231060146,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 75,
+      "with_land_price": 17,
+      "with_estimate": 16,
+      "placed": 0
+    }
+  },
+  "buraidah": {
+    "city_ar": "بريدة",
+    "city_en": "Buraidah",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 64044,
+    "matched_deals": 37593,
+    "districts": 69,
+    "bbox": [
+      43.7973,
+      26.2062,
+      44.0863,
+      26.4604
+    ],
+    "districts_with_price": 60,
+    "median_ppm2_12m": 590,
+    "deals_12m": 4073,
+    "value_12m": 1861629124,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 306,
+      "with_land_price": 65,
+      "with_estimate": 61,
+      "placed": 0
+    }
+  },
+  "unayzah": {
+    "city_ar": "عنيزة",
+    "city_en": "Unayzah",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 14096,
+    "matched_deals": 10341,
+    "districts": 90,
+    "bbox": [
+      43.8337,
+      25.9933,
+      44.1306,
+      26.2184
+    ],
+    "districts_with_price": 28,
+    "median_ppm2_12m": 502,
+    "deals_12m": 965,
+    "value_12m": 358150505,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 54,
+      "with_land_price": 22,
+      "with_estimate": 13,
+      "placed": 0
+    }
+  },
+  "hail": {
+    "city_ar": "حائل",
+    "city_en": "Hail",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 39912,
+    "matched_deals": 11201,
+    "districts": 42,
+    "bbox": [
+      41.5689,
+      27.3678,
+      41.8162,
+      27.6583
+    ],
+    "districts_with_price": 23,
+    "median_ppm2_12m": 425,
+    "deals_12m": 4431,
+    "value_12m": 1749276607,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 61,
+      "with_land_price": 19,
+      "with_estimate": 14,
+      "placed": 0
+    }
+  },
+  "hofuf": {
+    "city_ar": "الهفوف",
+    "city_en": "Al Hofuf",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 40145,
+    "matched_deals": 17025,
+    "districts": 100,
+    "bbox": [
+      49.4744,
+      25.2623,
+      49.697,
+      25.3952
+    ],
+    "districts_with_price": 52,
+    "median_ppm2_12m": 1100,
+    "deals_12m": 4013,
+    "value_12m": 2424651952,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 0,
+      "with_land_price": 0,
+      "with_estimate": 0,
+      "placed": 0
+    }
+  },
+  "tabuk": {
+    "city_ar": "تبوك",
+    "city_en": "Tabuk",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 24748,
+    "matched_deals": 19098,
+    "districts": 64,
+    "bbox": [
+      36.428,
+      28.3251,
+      37.0018,
+      28.5338
+    ],
+    "districts_with_price": 34,
+    "median_ppm2_12m": 759,
+    "deals_12m": 3076,
+    "value_12m": 1857356957,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 37,
+      "with_land_price": 26,
+      "with_estimate": 14,
+      "placed": 0
+    }
+  },
+  "kharj": {
+    "city_ar": "الخرج",
+    "city_en": "Al Kharj",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 27929,
+    "matched_deals": 15900,
+    "districts": 43,
+    "bbox": [
+      47.1786,
+      23.8654,
+      47.7646,
+      24.2548
+    ],
+    "districts_with_price": 20,
+    "median_ppm2_12m": 600,
+    "deals_12m": 2861,
+    "value_12m": 1924954377,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 63,
+      "with_land_price": 23,
+      "with_estimate": 15,
+      "placed": 0
+    }
+  },
+  "khamis": {
+    "city_ar": "خميس مشيط",
+    "city_en": "Khamis Mushait",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 18591,
+    "matched_deals": 5958,
+    "districts": 71,
+    "bbox": [
+      42.6474,
+      18.1845,
+      42.8662,
+      18.4106
+    ],
+    "districts_with_price": 23,
+    "median_ppm2_12m": 1415,
+    "deals_12m": 2558,
+    "value_12m": 1736882833,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 15,
+      "with_land_price": 3,
+      "with_estimate": 3,
+      "placed": 0
+    }
+  },
+  "abha": {
+    "city_ar": "أبها",
+    "city_en": "Abha",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 18854,
+    "matched_deals": 7288,
+    "districts": 43,
+    "bbox": [
+      42.4004,
+      18.1512,
+      42.6867,
+      18.3421
+    ],
+    "districts_with_price": 21,
+    "median_ppm2_12m": 1580,
+    "deals_12m": 2271,
+    "value_12m": 3628338042,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 13,
+      "with_land_price": 1,
+      "with_estimate": 0,
+      "placed": 0
+    }
+  },
+  "hafar": {
+    "city_ar": "حفر الباطن",
+    "city_en": "Hafar Al Batin",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 31471,
+    "matched_deals": 26436,
+    "districts": 36,
+    "bbox": [
+      45.9083,
+      28.2143,
+      46.0891,
+      28.4691
+    ],
+    "districts_with_price": 30,
+    "median_ppm2_12m": 200,
+    "deals_12m": 3755,
+    "value_12m": 767600308,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 107,
+      "with_land_price": 70,
+      "with_estimate": 65,
+      "placed": 0
+    }
+  },
+  "jubail": {
+    "city_ar": "الجبيل",
+    "city_en": "Al Jubail",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-27",
+    "window_start": "2025-09-28",
+    "deals": 12378,
+    "matched_deals": 9191,
+    "districts": 45,
+    "bbox": [
+      49.4817,
+      26.833,
+      49.8197,
+      27.1891
+    ],
+    "districts_with_price": 15,
+    "median_ppm2_12m": 952,
+    "deals_12m": 1972,
+    "value_12m": 1820677163,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 20,
+      "with_land_price": 14,
+      "with_estimate": 13,
+      "placed": 0
+    }
+  },
+  "qatif": {
+    "city_ar": "القطيف",
+    "city_en": "Al Qatif",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 10712,
+    "matched_deals": 1698,
+    "districts": 57,
+    "bbox": [
+      49.9537,
+      26.5254,
+      50.0539,
+      26.6284
+    ],
+    "districts_with_price": 7,
+    "median_ppm2_12m": 2215,
+    "deals_12m": 915,
+    "value_12m": 898590525,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 22,
+      "with_land_price": 6,
+      "with_estimate": 1,
+      "placed": 0
+    }
+  },
+  "khafji": {
+    "city_ar": "الخفجي",
+    "city_en": "Al Khafji",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-27",
+    "window_start": "2025-09-28",
+    "deals": 7421,
+    "matched_deals": 3586,
+    "districts": 28,
+    "bbox": [
+      48.445,
+      28.3792,
+      48.5296,
+      28.4926
+    ],
+    "districts_with_price": 17,
+    "median_ppm2_12m": 354,
+    "deals_12m": 972,
+    "value_12m": 320868158,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 20,
+      "with_land_price": 8,
+      "with_estimate": 6,
+      "placed": 0
+    }
+  },
+  "arar": {
+    "city_ar": "عرعر",
+    "city_en": "Arar",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 18402,
+    "matched_deals": 16249,
+    "districts": 66,
+    "bbox": [
+      40.7799,
+      30.7759,
+      41.3098,
+      31.0833
+    ],
+    "districts_with_price": 25,
+    "median_ppm2_12m": 111,
+    "deals_12m": 1602,
+    "value_12m": 250388823,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 18,
+      "with_land_price": 10,
+      "with_estimate": 7,
+      "placed": 0
+    }
+  },
+  "sakaka": {
+    "city_ar": "سكاكا",
+    "city_en": "Sakaka",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 12018,
+    "matched_deals": 7905,
+    "districts": 72,
+    "bbox": [
+      39.984,
+      29.7462,
+      40.3163,
+      30.0845
+    ],
+    "districts_with_price": 30,
+    "median_ppm2_12m": 233,
+    "deals_12m": 1022,
+    "value_12m": 282969524,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 58,
+      "with_land_price": 12,
+      "with_estimate": 9,
+      "placed": 0
+    }
+  },
+  "najran": {
+    "city_ar": "نجران",
+    "city_en": "Najran",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2020-01-01",
+    "last_deal": "2026-09-30",
+    "window_start": "2025-10-01",
+    "deals": 17918,
+    "matched_deals": 7313,
+    "districts": 73,
+    "bbox": [
+      44.0245,
+      17.4062,
+      44.6868,
+      17.782
+    ],
+    "districts_with_price": 16,
+    "median_ppm2_12m": 227,
+    "deals_12m": 1907,
+    "value_12m": 565489908,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 24,
+      "with_land_price": 9,
+      "with_estimate": 6,
+      "placed": 0
+    }
+  },
+  "yanbu": {
+    "city_ar": "ينبع",
+    "city_en": "Yanbu",
+    "source": "Ministry of Justice (MOJ) open data, KSA Open Data License",
+    "first_deal": "2024-10-06",
+    "last_deal": "2026-05-22",
+    "window_start": "2025-05-23",
+    "deals": 721,
+    "matched_deals": 448,
+    "districts": 71,
+    "bbox": [
+      37.9349,
+      24.0351,
+      38.2282,
+      24.3009
+    ],
+    "districts_with_price": 3,
+    "median_ppm2_12m": 100,
+    "deals_12m": 128,
+    "value_12m": 15540615,
+    "rent_source": "Real Estate General Authority (REGA) rental indicators, KSA Open Data License",
+    "rent_quarters": [
+      "2025-Q2",
+      "2025-Q3",
+      "2025-Q4",
+      "2026-Q1"
+    ],
+    "plans": {
+      "source_quarter": "2023-Q1",
+      "plans": 0,
+      "with_land_price": 0,
+      "with_estimate": 0,
       "placed": 0
     }
   }

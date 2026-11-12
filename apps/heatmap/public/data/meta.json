@@ -7,7 +7,7 @@
    "2025-Q2"
   ]
  },
- "built_at": "2026-11-12T08:27Z",
+ "built_at": "2026-11-12T08:30Z",
  "sale_as_of": "2025-Q3",
  "metrics": {
   "sale_all": {
@@ -81,7 +81,7 @@
     7500
    ],
    "sale_window": "2024-Q3..2025-Q2",
-   "sale_all_window": "2025-Q3..2026-Q2",
+   "sale_all_window": "2025-10..2026-05",
    "match": 0.989,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -228,7 +228,7 @@
     4000
    ],
    "sale_window": "2024-Q3..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.899,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -375,7 +375,7 @@
     3000
    ],
    "sale_window": "2024-Q3..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.666,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -522,7 +522,7 @@
     3500
    ],
    "sale_window": "2024-Q1..2024-Q4",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.984,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -669,7 +669,7 @@
     3100
    ],
    "sale_window": "2024-Q3..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.928,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -816,7 +816,7 @@
     4500
    ],
    "sale_window": "2025-Q1..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.676,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -963,7 +963,7 @@
     1600
    ],
    "sale_window": "2025-Q1..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.654,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {
@@ -1105,7 +1105,7 @@
     575
    ],
    "sale_window": "2025-Q1..2025-Q2",
-   "sale_all_window": "2025-Q4..2026-Q3",
+   "sale_all_window": "2025-10..2026-09",
    "match": 0.852,
    "rent_window": "2025-Q2..2026-Q1",
    "metrics": {

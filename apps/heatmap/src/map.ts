@@ -48,6 +48,7 @@ interface City {
 interface Meta {
   data_as_of: string;
   sale_as_of: string | null;
+  yoy_basis?: { months_now: number; months_before: number; missing?: string[] } | null;
   cities: City[];
   sources: { id: string; ar: string; en: string; license: string; url: string }[];
 }
@@ -388,11 +389,11 @@ function saleWindow(c?: City) {
   return (type === "all" ? c?.sale_all_window : c?.sale_window) ?? null;
 }
 
-/** Months from the end of a "2024-Q3..2025-Q2" window to today. */
+/** Months from the end of a "2024-Q3..2025-Q2" (or "2025-10..2026-09") window to today. */
 function monthsOld(window?: string | null) {
   const q = window?.split("..").pop();
   if (!q) return 0;
-  const end = Date.UTC(Number(q.slice(0, 4)), Number(q.slice(-1)) * 3, 1);
+  const end = Date.UTC(Number(q.slice(0, 4)), q.includes("-Q") ? Number(q.slice(-1)) * 3 : Number(q.slice(5, 7)), 1);
   return Math.floor((Date.now() - end) / (30.4 * 864e5));
 }
 
@@ -431,6 +432,7 @@ function renderLegend() {
     ${mode === "rent" && rentUnit === "unit" ? `<div class="legend-foot"><span class="muted">${s.unitNote}</span></div>` : ""}
     ${mode === "rent" && c.slug === "riyadh" ? `<div class="legend-note">${s.riyadhFreeze}</div>` : ""}
     ${mode === "sale" && type === "all" ? `<div class="legend-foot"><span class="muted">${s.allNote}</span></div>` : ""}
+    ${mode === "sale" && type === "all" && c.slug === "riyadh" ? `<div class="legend-note warn">${s.riyadhMoj}</div>` : ""}
     ${mode === "sale" && monthsOld(saleWindow(c)) > 12 ? `<div class="legend-note warn">${s.saleOld(fmtNumber(monthsOld(saleWindow(c)), locale))}</div>` : ""}
     <button class="asof" id="asof-btn">${asOfText(c)} · ⓘ</button>`;
   // The data date sits under the city chips too, where nobody can miss it.
@@ -454,7 +456,13 @@ function confBadge(c: Conf) {
 function reason(d: District, key: MetricKey) {
   const s = t();
   const n = Number(d[`${baseKey(key)}_n`] ?? 0);
-  if (key === "sale_all") return s.reasonAll(n, fmtWindow(cityBySlug.get(d.city)?.sale_all_window, locale));
+  if (key === "sale_all") {
+    // A price on the 24-month fallback covers a year more than the city's window.
+    const w = cityBySlug.get(d.city)?.sale_all_window;
+    const [a, b] = w?.split("..") ?? [];
+    const win = w && d.sale_all_24m ? `${Number(a.slice(0, 4)) - 1}${a.slice(4)}..${b}` : w;
+    return s.reasonAll(n, fmtWindow(win, locale));
+  }
   if (key.startsWith("sale")) return s.reasonSale(n, fmtWindow(cityBySlug.get(d.city)?.sale_window, locale));
   return s.reasonRent(n, fmtWindow(rentWindow(cityBySlug.get(d.city)), locale));
 }
@@ -468,7 +476,11 @@ function renderSheet(d: District) {
   const chg = mode === "sale" ? (d[`${key}_chg`] as number | null) : null;
   if (v != null && chg != null)
     stats.push(
-      `<div class="stat"><div class="k">${s.change}</div><div class="v ${chg > 0 ? "up" : chg < 0 ? "down" : ""}">${fmtPercent(chg, locale)}</div><div class="k2">${s.changeNote}</div></div>`,
+      `<div class="stat"><div class="k">${s.change}</div><div class="v ${chg > 0 ? "up" : chg < 0 ? "down" : ""}">${fmtPercent(chg, locale)}</div><div class="k2">${
+        key === "sale_all" && meta.yoy_basis && meta.yoy_basis.months_before < 12
+          ? s.yoyShort(meta.yoy_basis.months_now, meta.yoy_basis.months_before, (meta.yoy_basis.missing ?? []).join(", "))
+          : s.changeNote
+      }</div></div>`,
     );
   if (mode === "rent" && v != null) {
     // The other rent unit beside the one on the map.
